@@ -1,5 +1,5 @@
 ---
-trigger: manual
+trigger: always_on
 ---
 
 # Frontend Rules (Toggle)
@@ -45,8 +45,8 @@ trigger: manual
   - OPEN
   - BREAK_TIME
   - CLOSED
-  - TEMP_CLOSED
-  - EARLY_CLOSED
+  - TEMPORARILY_CLOSED
+  - EARLY_CLOSING
 
 ---
 
