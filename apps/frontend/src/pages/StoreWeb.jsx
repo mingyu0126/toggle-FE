@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { mockStores } from '../mocks/stores.mock';
 import StatusBadge from '../components/common/StatusBadge';
+import { addFavoriteStore, removeFavoriteStore } from '../lib/favorites';
+import { getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import styles from './StoreWeb.module.css';
 
 export default function StoreWeb() {
@@ -15,6 +17,9 @@ export default function StoreWeb() {
   
   // mock data lookup
   const store = mockStores.find(s => s.id === id) || mockStores[0]; 
+  const [isFavorite, setIsFavorite] = useState(() => getLocalFavorites().stores.map(String).includes(String(store.id)));
+  const [isFavoriteSubmitting, setIsFavoriteSubmitting] = useState(false);
+  const isLoggedIn = getIsLoggedIn();
 
   // Map control states
   const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
@@ -41,6 +46,16 @@ export default function StoreWeb() {
     }
   }, [store]);
 
+  useEffect(() => {
+    const syncFavoriteState = () => {
+      setIsFavorite(getLocalFavorites().stores.map(String).includes(String(store.id)));
+    };
+
+    syncFavoriteState();
+    window.addEventListener('favoritesChanged', syncFavoriteState);
+    return () => window.removeEventListener('favoritesChanged', syncFavoriteState);
+  }, [store.id]);
+
   const handleDirections = () => {
     if (store && store.lat && store.lng) {
       window.open(`https://map.kakao.com/link/to/${store.name},${store.lat},${store.lng}`, '_blank');
@@ -61,6 +76,33 @@ export default function StoreWeb() {
     } else {
       navigator.clipboard.writeText(window.location.href);
       alert('주소가 클립보드에 복사되었습니다! 친구에게 공유해 보세요. 📋');
+    }
+  };
+
+  const handleFavoriteClick = async () => {
+    if (!isLoggedIn) {
+      alert('로그인 후 이용할 수 있습니다.');
+      return;
+    }
+
+    if (isFavoriteSubmitting) {
+      return;
+    }
+
+    setIsFavoriteSubmitting(true);
+
+    try {
+      if (isFavorite) {
+        await removeFavoriteStore(store);
+        setIsFavorite(false);
+      } else {
+        await addFavoriteStore(store);
+        setIsFavorite(true);
+      }
+    } catch (error) {
+      alert(error.message || '즐겨찾기 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsFavoriteSubmitting(false);
     }
   };
 
@@ -248,8 +290,8 @@ export default function StoreWeb() {
               <ChevronLeft size={24} />
             </button>
             <div className={styles.headerTitle}>{store.name}</div>
-            <button className={styles.headerActionBtn}>
-              <Heart size={22} color={isScrolled ? '#1e293b' : 'white'} />
+            <button className={styles.headerActionBtn} onClick={handleFavoriteClick} disabled={isFavoriteSubmitting}>
+              <Heart size={22} color={isFavorite ? '#ef4444' : (isScrolled ? '#1e293b' : 'white')} fill={isFavorite ? '#ef4444' : 'none'} />
             </button>
           </div>
 

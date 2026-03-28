@@ -1,9 +1,10 @@
 import React from 'react';
-import { STATUS_UI } from '../../constants/status';
+import { STATUS_UI, normalizeStoreStatus } from '../../constants/status';
 import styles from './StatusBadge.module.css';
 
 export default function StatusBadge({ status, type = 'STORE', size = 'sm', className = '' }) {
-  const uiInfo = STATUS_UI[type]?.[status];
+  const normalizedStatus = type === 'STORE' ? normalizeStoreStatus(status) : status;
+  const uiInfo = STATUS_UI[type]?.[normalizedStatus];
   
   // 만약 알 수 없는 상태값이면 기본 회색 렌더링
   if (!uiInfo) {

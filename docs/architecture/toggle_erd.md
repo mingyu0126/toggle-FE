@@ -23,6 +23,8 @@ Table stores {
   id bigint [pk, increment]
   owner_id bigint [not null, ref: > users.id]
   category_id bigint [not null, ref: > store_categories.id]
+  external_source varchar [not null, default: 'KAKAO', note: 'KAKAO']
+  external_place_id varchar [not null, note: 'External place id from provider such as Kakao place id']
   name varchar [not null]
   description text
   phone varchar
@@ -33,6 +35,10 @@ Table stores {
   is_verified boolean [not null, default: false]
   created_at timestamp [not null]
   updated_at timestamp [not null]
+
+  indexes {
+    (external_source, external_place_id) [unique]
+  }
 }
 
 Table store_status_logs {

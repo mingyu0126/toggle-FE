@@ -1,78 +1,112 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Map, CustomOverlayMap } from 'react-kakao-maps-sdk';
-import { 
-  Search, Crosshair, Store as StoreIcon, Heart, User, MapPin, List as ListIcon 
+import {
+  Search, Crosshair, Store as StoreIcon, Heart, User, MapPin, List as ListIcon,
 } from 'lucide-react';
-import { mockUser } from '../mocks/users.mock';
-import { mockStores } from '../mocks/stores.mock';
 import { mockPublicInstitutions } from '../mocks/public.mock';
 import PlaceCard from '../components/common/PlaceCard';
+import { fetchFavoriteStores } from '../lib/favorites';
+import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
+import { getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import styles from './FavoritesWeb.module.css';
 
 export default function FavoritesWeb() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('ALL'); // 'ALL' | 'STORE' | 'PUBLIC'
-  
-  // Map control states
+  const [activeTab, setActiveTab] = useState('ALL');
   const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [favoriteStores, setFavoriteStores] = useState([]);
+  const [favoritePublicIds, setFavoritePublicIds] = useState(() => getLocalFavorites().publics || []);
   const [myLocation, setMyLocation] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Mock user's favorites
-  const favStoreIds = mockUser.favorites.stores;
-  const favPublicIds = mockUser.favorites.publics;
+  const loadFavoriteStores = async () => {
+    if (!getIsLoggedIn()) {
+      setFavoriteStores([]);
+      return;
+    }
 
-  const favStores = mockStores
-    .filter(s => favStoreIds.includes(s.id))
-    .map((s, idx) => ({
-      ...s,
-      type: 'STORE',
-      position: { lat: 37.5065 + (idx * 0.001), lng: 127.0536 + (idx * 0.001) },
-      color: '#10b981' // Green for stores
-    }));
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const items = await fetchFavoriteStores();
+      setFavoriteStores(items.map(mapFavoriteStoreItemToPlace));
+    } catch (loadError) {
+      setError(loadError.message || '저장한 매장을 불러오지 못했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFavoriteStores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const handleFavoritesChanged = () => {
+      setIsLoggedIn(getIsLoggedIn());
+      setFavoritePublicIds(getLocalFavorites().publics || []);
+      loadFavoriteStores();
+    };
+
+    window.addEventListener('favoritesChanged', handleFavoritesChanged);
+    return () => window.removeEventListener('favoritesChanged', handleFavoritesChanged);
+  }, []);
+
+  const favStores = favoriteStores.map((store, index) => ({
+    ...store,
+    type: 'STORE',
+    position: { lat: Number(store.lat) || 37.5065 + (index * 0.001), lng: Number(store.lng) || 127.0536 + (index * 0.001) },
+    color: '#10b981',
+  }));
 
   const favPublics = mockPublicInstitutions
-    .filter(p => favPublicIds.includes(p.id))
-    .map((p, idx) => ({
-      ...p,
+    .filter((place) => favoritePublicIds.map(String).includes(String(place.id)))
+    .map((place, index) => ({
+      ...place,
       type: 'CONGESTION',
-      position: { lat: 37.5050 - (idx * 0.001), lng: 127.0520 + (idx * 0.001) },
-      color: '#3b82f6' // Blue for public
+      position: { lat: 37.5050 - (index * 0.001), lng: 127.0520 + (index * 0.001) },
+      color: '#3b82f6',
     }));
 
   const allItems = [...favStores, ...favPublics];
-
-  const filteredItems = allItems.filter(item => {
+  const filteredItems = allItems.filter((item) => {
     if (activeTab === 'STORE') return item.type === 'STORE';
     if (activeTab === 'PUBLIC') return item.type === 'CONGESTION';
     return true;
   });
 
-  // Handle My Location Click
   const handleMyLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
-          setMapCenter(loc);
-          setMyLocation(loc);
+          const location = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setMapCenter(location);
+          setMyLocation(location);
         },
-        () => alert('현위치를 가져올 수 없습니다.')
+        () => alert('현위치를 가져올 수 없습니다.'),
       );
+    }
+  };
+
+  const focusPlace = (item) => {
+    if (item.position) {
+      setMapCenter(item.position);
     }
   };
 
   return (
     <div className={styles.webContainer}>
-      {/* 바깥 상단 헤더 */}
       <header className={styles.webHeader}>
         <div className={styles.logoGroup} onClick={() => navigate('/mapweb')}>
           <StoreIcon size={28} className={styles.logoIcon} />
           <span className={styles.logoText}>Toggle PC</span>
         </div>
-        
+
         <div className={styles.searchContainer}>
           <div className={styles.headerSearch} onClick={() => navigate('/mapweb')}>
             <Search size={18} color="rgba(255,255,255,0.5)" />
@@ -88,86 +122,57 @@ export default function FavoritesWeb() {
           <button className={styles.iconBtn}><User size={20} /></button>
         </nav>
       </header>
- 
+
       <div className={styles.webBody}>
-        {/* Left Sidebar: Favorites list */}
         <aside className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
-            <div className={styles.titleSec}>
-               <Heart size={24} fill="var(--color-status-red)" color="var(--color-status-red)" />
-               <h2>저장한 장소</h2>
-            </div>
-            
-            <div className={styles.tabContainer}>
-              <button 
-                className={`${styles.tab} ${activeTab === 'ALL' ? styles.active : ''}`}
-                onClick={() => setActiveTab('ALL')}
-              >
-                전체 ({allItems.length})
-              </button>
-              <button 
-                className={`${styles.tab} ${activeTab === 'STORE' ? styles.active : ''}`}
-                onClick={() => setActiveTab('STORE')}
-              >
-                매장 ({favStores.length})
-              </button>
-              <button 
-                className={`${styles.tab} ${activeTab === 'PUBLIC' ? styles.active : ''}`}
-                onClick={() => setActiveTab('PUBLIC')}
-              >
-                공공기관 ({favPublics.length})
-              </button>
+            <div className={styles.sidebarTitleWrap}>
+              <h1 className={styles.sidebarTitle}>저장한 장소</h1>
+              <p className={styles.sidebarSubtitle}>서버에 저장된 매장 즐겨찾기와 로컬 공공기관 저장 목록을 함께 보여줍니다.</p>
             </div>
           </div>
 
-          <div className={styles.listContainer}>
-            {filteredItems.length > 0 ? (
-              <div className={styles.cardsWrapper}>
-                {filteredItems.map(item => (
-                  <div 
-                     key={`${item.type}-${item.id}`} 
-                     className={styles.cardItem} 
-                     onClick={() => {
-                        setMapCenter(item.position);
-                        setSelectedPlace(item);
-                     }}
-                  >
-                    <PlaceCard 
-                      place={item} 
-                      type={item.type} 
-                      isWeb={true}
-                    />
-                  </div>
-                ))}
+          <div className={styles.tabContainer}>
+            <button className={`${styles.tabBtn} ${activeTab === 'ALL' ? styles.activeTab : ''}`} onClick={() => setActiveTab('ALL')}>전체</button>
+            <button className={`${styles.tabBtn} ${activeTab === 'STORE' ? styles.activeTab : ''}`} onClick={() => setActiveTab('STORE')}>매장</button>
+            <button className={`${styles.tabBtn} ${activeTab === 'PUBLIC' ? styles.activeTab : ''}`} onClick={() => setActiveTab('PUBLIC')}>공공기관</button>
+          </div>
+
+          <div className={styles.placeList}>
+            {!isLoggedIn && <div className={styles.emptyState}>로그인 후 저장한 장소를 확인할 수 있습니다.</div>}
+            {isLoggedIn && isLoading && <div className={styles.emptyState}>저장한 장소를 불러오는 중입니다.</div>}
+            {isLoggedIn && !isLoading && error && <div className={styles.emptyState}>{error}</div>}
+            {isLoggedIn && !isLoading && !error && filteredItems.length === 0 && (
+              <div className={styles.emptyState}>
+                저장한 장소가 없습니다.
               </div>
-             ) : (
-                <div className={styles.emptyState}>
-                   저장한 장소가 없습니다.
-                </div>
-             )}
+            )}
+
+            {isLoggedIn && !isLoading && !error && filteredItems.map((item) => (
+              <div key={`${item.type}-${item.internalStoreId || item.id}`} onClick={() => focusPlace(item)}>
+                <PlaceCard place={item} type={item.type} isWeb />
+              </div>
+            ))}
           </div>
         </aside>
 
-        {/* Right Content: Map */}
         <div className={styles.contentArea}>
           <main className={styles.mapArea}>
             <Map
               center={mapCenter}
               style={{ width: '100%', height: '100%', borderRadius: '16px' }}
               level={4}
-              onCreate={() => setIsMapLoaded(true)}
             >
-              {/* 즐겨찾기 목록 마커들 (스마트 핀 구조) */}
               {filteredItems.map((item) => (
-                <CustomOverlayMap key={`marker-${item.id}`} position={item.position} yAnchor={1} zIndex={100}>
+                <CustomOverlayMap key={`marker-${item.type}-${item.internalStoreId || item.id}`} position={item.position} yAnchor={1} zIndex={100}>
                   <div className={styles.markerPlaceholder}>
-                    <div 
-                      className={styles.markerBaloon} 
+                    <div
+                      className={styles.markerBaloon}
                       onClick={() => navigate(item.type === 'CONGESTION' ? `/publicweb/${item.id}` : `/storeweb/${item.id}`)}
                       style={{ cursor: 'pointer' }}
                     >
-                      <div style={{width: 8, height: 8, background: item.color, borderRadius: '50%'}} /> 
-                      <span style={{color: item.color}}>{item.name || item.title}</span>
+                      <div style={{ width: 8, height: 8, background: item.color, borderRadius: '50%' }} />
+                      <span style={{ color: item.color }}>{item.name || item.title}</span>
                       <span style={{ color: 'var(--color-primary)', marginLeft: '0.25rem', fontWeight: 800 }}>&rsaquo;</span>
                     </div>
                     <MapPin size={42} fill="rgba(15,23,42,0.9)" color="white" className={styles.markerPin} style={{ color: item.color }} />
@@ -175,7 +180,6 @@ export default function FavoritesWeb() {
                 </CustomOverlayMap>
               ))}
 
-              {/* 내 위치 마커 */}
               {myLocation && (
                 <CustomOverlayMap position={myLocation} zIndex={50}>
                   <div className={styles.myLocationMarker}>
@@ -191,7 +195,6 @@ export default function FavoritesWeb() {
             </button>
           </main>
 
-          {/* 데스크탑 맵 하단 네비게이션 & 푸터 */}
           <div className={styles.webBottomNav}>
             <div className={styles.navTabs}>
               <button className={styles.webNavBtn} onClick={() => navigate('/mapweb')}>

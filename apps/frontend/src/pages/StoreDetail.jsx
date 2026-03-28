@@ -5,6 +5,8 @@ import { Map, MapMarker } from 'react-kakao-maps-sdk';
 import { mockStores } from '../mocks/stores.mock';
 import StatusBadge from '../components/common/StatusBadge';
 import LoginModal from '../components/common/LoginModal'; // 추가
+import { addFavoriteStore, removeFavoriteStore } from '../lib/favorites';
+import { getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import styles from './StoreDetail.module.css';
 
 export default function StoreDetail() {
@@ -14,9 +16,11 @@ export default function StoreDetail() {
   const [viewMode, setViewMode] = useState('IMAGE'); // 'IMAGE' or 'MAP'
 
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'; // 비회원 시뮬레이션
+  const [isFavoriteSubmitting, setIsFavoriteSubmitting] = useState(false);
+  const isLoggedIn = getIsLoggedIn();
   const initialStore = mockStores.find(s => String(s.id) === id) || mockStores[0]; 
   const ownerComment = localStorage.getItem(`ownerComment_${initialStore.id}`) || ''; // 사장님 코멘트 피드
+  const [isFavorite, setIsFavorite] = useState(() => getLocalFavorites().stores.map(String).includes(String(initialStore.id)));
 
   // Sheet drag state (Home.jsx와 동일한 100% 레이아웃 형태 복귀)
   const [sheetHeight, setSheetHeight] = useState(55); // 기본 55%
@@ -79,6 +83,16 @@ export default function StoreDetail() {
     // 이제 window 스크롤이 아니라 내부 scrollArea div 스크롤을 감지합니다.
   }, []);
 
+  useEffect(() => {
+    const syncFavoriteState = () => {
+      setIsFavorite(getLocalFavorites().stores.map(String).includes(String(initialStore.id)));
+    };
+
+    syncFavoriteState();
+    window.addEventListener('favoritesChanged', syncFavoriteState);
+    return () => window.removeEventListener('favoritesChanged', syncFavoriteState);
+  }, [initialStore.id]);
+
   const handleScroll = (e) => {
     if (e.target.scrollTop > 50) {
       setIsScrolled(true);
@@ -110,6 +124,33 @@ export default function StoreDetail() {
     }
   };
 
+  const handleFavoriteClick = async () => {
+    if (!isLoggedIn) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    if (isFavoriteSubmitting) {
+      return;
+    }
+
+    setIsFavoriteSubmitting(true);
+
+    try {
+      if (isFavorite) {
+        await removeFavoriteStore(store);
+        setIsFavorite(false);
+      } else {
+        await addFavoriteStore(store);
+        setIsFavorite(true);
+      }
+    } catch (error) {
+      alert(error.message || '즐겨찾기 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsFavoriteSubmitting(false);
+    }
+  };
+
   if (!store) return <div>Store not found</div>;
 
   // 임시 커버 이미지 (실제로는 store 데이터에 coverImage 속성 추가 필요)
@@ -123,8 +164,8 @@ export default function StoreDetail() {
           <ChevronLeft size={24} />
         </button>
         <div className={styles.headerTitle}>{store.name}</div>
-        <button className={styles.headerActionBtn} onClick={() => !isLoggedIn && setShowLoginModal(true)}>
-          <Heart size={22} color={isScrolled ? 'var(--color-text-primary)' : 'white'} />
+        <button className={styles.headerActionBtn} onClick={handleFavoriteClick} disabled={isFavoriteSubmitting}>
+          <Heart size={22} color={isFavorite ? '#ef4444' : (isScrolled ? 'var(--color-text-primary)' : 'white')} fill={isFavorite ? '#ef4444' : 'none'} />
         </button>
       </div>
 

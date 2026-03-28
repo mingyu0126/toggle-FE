@@ -9,7 +9,7 @@ export default function Pos() {
   const navigate = useNavigate();
   // 모의 점주 데이터: 초기엔 POS 로그인 시 자동으로 영업중 처리한다고 가정
   const [storeStatus, setStoreStatus] = useState(localStorage.getItem('storeStatus_store-1') || STATUS_TYPES.STORE.OPEN);
-  const [activePanel, setActivePanel] = useState(null); // 'BREAK', 'TEMP_CLOSED', 'EARLY_CLOSE'
+  const [activePanel, setActivePanel] = useState(null); // 'BREAK_TIME', 'TEMP_CLOSED', 'EARLY_CLOSED'
   
   // 브레이크타임 설정 폼 상태
   const [breakStart, setBreakStart] = useState('15:00');
@@ -62,10 +62,10 @@ export default function Pos() {
   };
 
   const handleApplyBreak = () => {
-    setStoreStatus(STATUS_TYPES.STORE.BREAK);
-    logHistory(STATUS_TYPES.STORE.BREAK, `브레이크타임 시작 (${breakStart} ~ ${breakEnd})`);
+    setStoreStatus(STATUS_TYPES.STORE.BREAK_TIME);
+    logHistory(STATUS_TYPES.STORE.BREAK_TIME, `브레이크타임 시작 (${breakStart} ~ ${breakEnd})`);
     setActivePanel(null);
-    localStorage.setItem('storeStatus_store-1', STATUS_TYPES.STORE.BREAK);
+    localStorage.setItem('storeStatus_store-1', STATUS_TYPES.STORE.BREAK_TIME);
   };
 
   const handleApplyTemp = () => {
@@ -76,10 +76,10 @@ export default function Pos() {
   };
 
   const handleApplyEarly = () => {
-    setStoreStatus(STATUS_TYPES.STORE.EARLY_CLOSE);
-    logHistory(STATUS_TYPES.STORE.EARLY_CLOSE, '재료소진 등으로 조기마감');
+    setStoreStatus(STATUS_TYPES.STORE.EARLY_CLOSED);
+    logHistory(STATUS_TYPES.STORE.EARLY_CLOSED, '재료소진 등으로 조기마감');
     setActivePanel(null);
-    localStorage.setItem('storeStatus_store-1', STATUS_TYPES.STORE.EARLY_CLOSE);
+    localStorage.setItem('storeStatus_store-1', STATUS_TYPES.STORE.EARLY_CLOSED);
   };
 
   const handleSaveComment = () => {
@@ -91,7 +91,7 @@ export default function Pos() {
   // 버튼 활성화용 스타일 클래스 추출
   const getActiveClass = (type) => {
     if (storeStatus !== type) return '';
-    if (type === STATUS_TYPES.STORE.BREAK || type === STATUS_TYPES.STORE.EARLY_CLOSE) return styles.activeBreak;
+    if (type === STATUS_TYPES.STORE.BREAK_TIME || type === STATUS_TYPES.STORE.EARLY_CLOSED) return styles.activeBreak;
     if (type === STATUS_TYPES.STORE.CLOSED) return styles.activeClosed;
     if (type === STATUS_TYPES.STORE.TEMP_CLOSED) return styles.activeTemp;
     return styles.active; // Open
@@ -133,8 +133,8 @@ export default function Pos() {
               <Play size={28} /> 영업중 전환
             </button>
             <button 
-              className={`${styles.statusBtn} ${getActiveClass(STATUS_TYPES.STORE.BREAK)}`}
-              onClick={() => handleStatusClick(STATUS_TYPES.STORE.BREAK)}
+              className={`${styles.statusBtn} ${getActiveClass(STATUS_TYPES.STORE.BREAK_TIME)}`}
+              onClick={() => handleStatusClick(STATUS_TYPES.STORE.BREAK_TIME)}
             >
               <Pause size={28} /> 브레이크타임
             </button>
@@ -145,8 +145,8 @@ export default function Pos() {
               <Square size={28} /> 영업 종료
             </button>
             <button 
-              className={`${styles.statusBtn} ${getActiveClass(STATUS_TYPES.STORE.EARLY_CLOSE)}`}
-              onClick={() => handleStatusClick(STATUS_TYPES.STORE.EARLY_CLOSE)}
+              className={`${styles.statusBtn} ${getActiveClass(STATUS_TYPES.STORE.EARLY_CLOSED)}`}
+              onClick={() => handleStatusClick(STATUS_TYPES.STORE.EARLY_CLOSED)}
             >
               <Clock size={28} /> 조기 마감
             </button>
@@ -159,7 +159,7 @@ export default function Pos() {
           </div>
 
           {/* 브레이크타임 설정 패널 */}
-          {activePanel === STATUS_TYPES.STORE.BREAK && (
+          {activePanel === STATUS_TYPES.STORE.BREAK_TIME && (
             <div className={styles.settingsPanel}>
               <div className={styles.formGroup}>
                 <label>브레이크타임 시간 설정</label>
@@ -174,7 +174,7 @@ export default function Pos() {
           )}
 
           {/* 조기마감 설정 패널 */}
-          {activePanel === STATUS_TYPES.STORE.EARLY_CLOSE && (
+          {activePanel === STATUS_TYPES.STORE.EARLY_CLOSED && (
             <div className={styles.settingsPanel}>
               <p style={{ fontSize: '0.95rem', color: 'var(--color-text-secondary)' }}>재료 소진, 인력 부족 등의 사유로 금일 영업을 일찍 마감하시겠습니까?</p>
               <button className={styles.applyBtn} onClick={handleApplyEarly}>금일 조기마감 적용</button>

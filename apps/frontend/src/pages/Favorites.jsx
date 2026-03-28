@@ -1,58 +1,90 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Heart, Store, Users, User, MapPin, List as ListIcon } from 'lucide-react';
-import { mockUser } from '../mocks/users.mock';
-import { mockStores } from '../mocks/stores.mock';
 import { mockPublicInstitutions } from '../mocks/public.mock';
 import PlaceCard from '../components/common/PlaceCard';
+import { fetchFavoriteStores } from '../lib/favorites';
+import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
+import { getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import styles from './Favorites.module.css';
 
 export default function Favorites() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('ALL'); // 'ALL' | 'STORE' | 'PUBLIC'
-  
-  const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('currentUser') || '{}'));
-  const [isLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true'); // 비회원 가상 시뮬레이션
-  const [favorites, setFavorites] = useState(currentUser.favorites || { stores: [], publics: [] });
+  const [activeTab, setActiveTab] = useState('ALL');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
+  const [favoriteStores, setFavoriteStores] = useState([]);
+  const [favoritePublicIds, setFavoritePublicIds] = useState(() => getLocalFavorites().publics || []);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  React.useEffect(() => {
-    const handleFavsChanged = () => {
-      const updated = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      setCurrentUser(updated);
-      setFavorites(updated.favorites || { stores: [], publics: [] });
-    };
-    window.addEventListener('favoritesChanged', handleFavsChanged);
-    return () => window.removeEventListener('favoritesChanged', handleFavsChanged);
+  const loadFavoriteStores = async () => {
+    if (!getIsLoggedIn()) {
+      setFavoriteStores([]);
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const items = await fetchFavoriteStores();
+      setFavoriteStores(items.map(mapFavoriteStoreItemToPlace));
+    } catch (loadError) {
+      setError(loadError.message || '저장한 매장을 불러오지 못했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFavoriteStores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const favStores = mockStores.filter(s => favorites.stores.includes(s.id));
-  const favPublics = mockPublicInstitutions.filter(p => favorites.publics.includes(p.id));
+  useEffect(() => {
+    const handleFavoritesChanged = () => {
+      setIsLoggedIn(getIsLoggedIn());
+      setFavoritePublicIds(getLocalFavorites().publics || []);
+      loadFavoriteStores();
+    };
 
-  const totalCount = favStores.length + favPublics.length;
+    window.addEventListener('favoritesChanged', handleFavoritesChanged);
+    return () => window.removeEventListener('favoritesChanged', handleFavoritesChanged);
+  }, []);
+
+  const favPublics = mockPublicInstitutions.filter((place) => favoritePublicIds.map(String).includes(String(place.id)));
+  const totalCount = favoriteStores.length + favPublics.length;
 
   const handleAddToMyMap = (itemId, type) => {
-    const myMap = currentUser.myMap || { stores: [], publics: [] };
+    const latestUser = getCurrentUser();
+    const myMap = latestUser.myMap || { stores: [], publics: [] };
     const key = type === 'STORE' ? 'stores' : 'publics';
-    
-    if (myMap[key] && myMap[key].includes(itemId)) {
+    const value = String(itemId);
+
+    if ((myMap[key] || []).map(String).includes(value)) {
       alert('이미 내 지도에 추가된 장소입니다.');
       return;
     }
 
-    const updatedMyMap = { ...myMap };
-    if (!updatedMyMap[key]) updatedMyMap[key] = [];
-    updatedMyMap[key].push(itemId);
+    const updatedMyMap = {
+      ...myMap,
+      [key]: [...(myMap[key] || []), value],
+    };
 
-    const updatedUser = { ...currentUser, myMap: updatedMyMap };
-    setCurrentUser(updatedUser);
+    const updatedUser = { ...latestUser, myMap: updatedMyMap };
     localStorage.setItem('currentUser', JSON.stringify(updatedUser));
 
     const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = users.map(u => u.id === currentUser.id ? updatedUser : u);
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
+    if (Array.isArray(users) && latestUser?.id) {
+      const updatedUsers = users.map((user) => (user.id === latestUser.id ? updatedUser : user));
+      localStorage.setItem('users', JSON.stringify(updatedUsers));
+    }
 
-    alert('🧭 내 지도에 성공적으로 추가되었습니다!');
+    alert('내 지도에 성공적으로 추가되었습니다.');
   };
+
+  const showStoreSection = activeTab === 'ALL' || activeTab === 'STORE';
+  const showPublicSection = activeTab === 'ALL' || activeTab === 'PUBLIC';
 
   return (
     <div className={styles.container}>
@@ -63,25 +95,15 @@ export default function Favorites() {
         <h1 className={styles.title}>저장한 장소</h1>
       </header>
 
-      {/* Segmented Controller / Tabs */}
       <div className={styles.tabWrapper}>
         <div className={styles.tabContainer}>
-          <button
-            className={`${styles.tab} ${activeTab === 'ALL' ? styles.active : ''}`}
-            onClick={() => setActiveTab('ALL')}
-          >
+          <button className={`${styles.tab} ${activeTab === 'ALL' ? styles.active : ''}`} onClick={() => setActiveTab('ALL')}>
             기본 전체 {isLoggedIn ? `(${totalCount})` : ''}
           </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'STORE' ? styles.active : ''}`}
-            onClick={() => setActiveTab('STORE')}
-          >
-            매장 {isLoggedIn ? `(${favStores.length})` : ''}
+          <button className={`${styles.tab} ${activeTab === 'STORE' ? styles.active : ''}`} onClick={() => setActiveTab('STORE')}>
+            매장 {isLoggedIn ? `(${favoriteStores.length})` : ''}
           </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'PUBLIC' ? styles.active : ''}`}
-            onClick={() => setActiveTab('PUBLIC')}
-          >
+          <button className={`${styles.tab} ${activeTab === 'PUBLIC' ? styles.active : ''}`} onClick={() => setActiveTab('PUBLIC')}>
             공공기관 {isLoggedIn ? `(${favPublics.length})` : ''}
           </button>
         </div>
@@ -89,30 +111,33 @@ export default function Favorites() {
 
       <div className={styles.content}>
         {!isLoggedIn ? (
-          <div className={styles.emptyState} style={{ marginTop: '5rem' }}>
+          <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>
               <Heart size={48} strokeWidth={1} />
             </div>
-            <h3>로그인이 필요한 메뉴입니다</h3>
-            <p>저장한 장소 목록을 확인하려면 로그인해 주세요.</p>
+            <h3>로그인 후 저장한 장소를 확인할 수 있습니다</h3>
+            <p>하트 버튼과 저장 목록은 로그인한 사용자 기준으로 동기화됩니다.</p>
             <button className={styles.goMapBtn} onClick={() => navigate('/login')}>
-              로그인하기
+              로그인하러 가기
             </button>
           </div>
         ) : (
           <>
-            {(activeTab === 'ALL' || activeTab === 'STORE') && favStores.length > 0 && (
+            {isLoading && <div className={styles.emptyState}><p>저장한 매장을 불러오는 중입니다.</p></div>}
+            {!isLoading && error && <div className={styles.emptyState}><p>{error}</p></div>}
+
+            {!isLoading && !error && showStoreSection && favoriteStores.length > 0 && (
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <Store size={18} className={styles.iconStore} />
                   <h2 className={styles.sectionTitle}>저장한 매장</h2>
                 </div>
                 <div className={styles.grid}>
-                  {favStores.map(store => (
-                    <div key={store.id} style={{ position: 'relative' }}>
+                  {favoriteStores.map((store) => (
+                    <div key={store.internalStoreId || store.id} style={{ position: 'relative' }}>
                       <PlaceCard place={store} type="STORE" />
                       <button className={styles.myMapBtn} onClick={() => handleAddToMyMap(store.id, 'STORE')}>
-                         🧭 내 지도에 추가
+                        내 지도에 추가
                       </button>
                     </div>
                   ))}
@@ -120,18 +145,18 @@ export default function Favorites() {
               </section>
             )}
 
-            {(activeTab === 'ALL' || activeTab === 'PUBLIC') && favPublics.length > 0 && (
+            {!isLoading && !error && showPublicSection && favPublics.length > 0 && (
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <Users size={18} className={styles.iconPublic} />
                   <h2 className={styles.sectionTitle}>저장한 공공기관</h2>
                 </div>
                 <div className={styles.grid}>
-                  {favPublics.map(pub => (
-                    <div key={pub.id} style={{ position: 'relative' }}>
-                      <PlaceCard place={pub} type="CONGESTION" />
-                      <button className={styles.myMapBtn} onClick={() => handleAddToMyMap(pub.id, 'PUBLIC')}>
-                         🧭 내 지도에 추가
+                  {favPublics.map((place) => (
+                    <div key={place.id} style={{ position: 'relative' }}>
+                      <PlaceCard place={place} type="CONGESTION" />
+                      <button className={styles.myMapBtn} onClick={() => handleAddToMyMap(place.id, 'PUBLIC')}>
+                        내 지도에 추가
                       </button>
                     </div>
                   ))}
@@ -139,16 +164,17 @@ export default function Favorites() {
               </section>
             )}
 
-            {/* Empty State */}
-            {((activeTab === 'ALL' && totalCount === 0) ||
-              (activeTab === 'STORE' && favStores.length === 0) ||
-              (activeTab === 'PUBLIC' && favPublics.length === 0)) && (
+            {!isLoading && !error && (
+              ((activeTab === 'ALL' && totalCount === 0) ||
+              (activeTab === 'STORE' && favoriteStores.length === 0) ||
+              (activeTab === 'PUBLIC' && favPublics.length === 0))
+            ) && (
               <div className={styles.emptyState}>
                 <div className={styles.emptyIcon}>
                   <Heart size={48} strokeWidth={1} />
                 </div>
                 <h3>저장한 장소가 없습니다</h3>
-                <p>마음에 드는 장소의 하트를 눌러보세요!</p>
+                <p>마음에 드는 장소의 하트를 눌러보세요.</p>
                 <button className={styles.goMapBtn} onClick={() => navigate('/map')}>
                   <MapPin size={18} /> 지도에서 찾아보기
                 </button>
@@ -158,7 +184,6 @@ export default function Favorites() {
         )}
       </div>
 
-      {/* 하단 네비게이션 (고정) */}
       <div className={styles.bottomNavWrapper}>
         <nav className={styles.bottomNav}>
           <button style={navBtnStyle(false)} onClick={() => navigate('/map')}>
@@ -192,5 +217,5 @@ const navBtnStyle = (isActive) => ({
   border: 'none',
   outline: 'none',
   fontWeight: isActive ? 700 : 500,
-  cursor: 'pointer'
+  cursor: 'pointer',
 });
