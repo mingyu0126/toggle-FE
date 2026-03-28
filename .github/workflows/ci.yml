@@ -41,7 +41,7 @@ jobs:
   backend-build:
     name: Backend Build And Test
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('apps/backend/gradlew') != '' || hashFiles('apps/backend/build.gradle') != '' || hashFiles('apps/backend/build.gradle.kts') != '' }}
+    if: ${{ hashFiles('apps/backend/build.gradle') != '' || hashFiles('apps/backend/build.gradle.kts') != '' }}
 
     defaults:
       run:
@@ -58,8 +58,8 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x gradlew
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Run backend tests
-        run: ./gradlew clean test
+        run: gradle clean test

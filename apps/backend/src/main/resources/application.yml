@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: toggle-backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/toggle
+    username: toggle
+    password: toggle
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+server:
+  port: 8080

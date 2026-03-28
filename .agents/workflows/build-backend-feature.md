@@ -88,6 +88,21 @@ Save to:
 handoff/eng-review/{feature-name}-api.md
 ```
 
+### 3.5 Review ERD / Schema If Domain Changes
+
+If the feature adds or changes database structure:
+
+Use:
+→ `backend-erd-review`
+
+Must check:
+- requirement coverage
+- relationship integrity
+- enum consistency
+- index/constraint gaps
+
+---
+
 ---
 
 ### 4. Generate Test Scenarios
@@ -173,6 +188,7 @@ Ensure:
 - permission enforcement
 - status correctness
 - test coverage completeness
+- CI/CD implications reviewed if build or deploy flow changed
 
 ---
 

@@ -163,6 +163,7 @@ Ensure:
 - permission rules enforced
 - API responses consistent
 - no breaking changes
+- CI/CD and deployment readiness reviewed with `github-actions-cicd` if release setup changed
 
 ---
 

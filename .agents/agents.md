@@ -56,6 +56,8 @@ handoff/pm/{feature-name}-prd.md
 
 #### Uses
 - `design-api-contract`
+- `backend-erd-review` (when schema/domain review is needed)
+- `github-actions-cicd` (when release pipeline or deployment readiness is needed)
 - `backend-rules.md`
 
 #### Output
@@ -145,6 +147,23 @@ When user requests:
 qa-release
 ```
 
+When release workflow, CI/CD, or deployment readiness is requested:
+- use `github-actions-cicd`
+
+---
+
+### ERD / Schema Review
+
+When user requests:
+- "ERD 리뷰해줘"
+- "DBML 검토해줘"
+- "스키마 검토해줘"
+
+👉 MUST use:
+```
+backend-erd-review
+```
+
 ---
 
 ## 📦 Output Structure
@@ -163,6 +182,7 @@ handoff/
 
 - NEVER skip PRD step for new features
 - NEVER design API without defined scope
+- NEVER finalize entity design before ERD/schema review when schema changed
 - NEVER implement without considering permissions
 - ALWAYS validate role boundaries
 - ALWAYS ensure consistency across map/list/detail
