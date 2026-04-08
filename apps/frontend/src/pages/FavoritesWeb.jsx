@@ -8,7 +8,7 @@ import { mockPublicInstitutions } from '../mocks/public.mock';
 import PlaceCard from '../components/common/PlaceCard';
 import { fetchFavoriteStores } from '../lib/favorites';
 import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
-import { getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
+import { clearAuthSession, getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import styles from './FavoritesWeb.module.css';
 
 export default function FavoritesWeb() {
@@ -19,6 +19,7 @@ export default function FavoritesWeb() {
   const [favoritePublicIds, setFavoritePublicIds] = useState(() => getLocalFavorites().publics || []);
   const [myLocation, setMyLocation] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -49,12 +50,25 @@ export default function FavoritesWeb() {
   useEffect(() => {
     const handleFavoritesChanged = () => {
       setIsLoggedIn(getIsLoggedIn());
+      setCurrentUser(getCurrentUser());
       setFavoritePublicIds(getLocalFavorites().publics || []);
       loadFavoriteStores();
     };
 
     window.addEventListener('favoritesChanged', handleFavoritesChanged);
     return () => window.removeEventListener('favoritesChanged', handleFavoritesChanged);
+  }, []);
+
+  useEffect(() => {
+    const syncAuthState = () => {
+      setIsLoggedIn(getIsLoggedIn());
+      setCurrentUser(getCurrentUser());
+      setFavoritePublicIds(getLocalFavorites().publics || []);
+      loadFavoriteStores();
+    };
+
+    window.addEventListener('authChanged', syncAuthState);
+    return () => window.removeEventListener('authChanged', syncAuthState);
   }, []);
 
   const favStores = favoriteStores.map((store, index) => ({
@@ -99,6 +113,11 @@ export default function FavoritesWeb() {
     }
   };
 
+  const handleLogout = () => {
+    clearAuthSession();
+    navigate('/loginweb');
+  };
+
   return (
     <div className={styles.webContainer}>
       <header className={styles.webHeader}>
@@ -117,9 +136,19 @@ export default function FavoritesWeb() {
         </div>
 
         <nav className={styles.navLinks}>
-          <button className={styles.navBtn} onClick={() => navigate('/loginweb')}>점주 로그인</button>
-          <button className={styles.iconBtn}><Heart size={20} /></button>
-          <button className={styles.iconBtn}><User size={20} /></button>
+          {isLoggedIn ? (
+            <button className={styles.navBtn} onClick={handleLogout}>로그아웃</button>
+          ) : (
+            <button className={styles.navBtn} onClick={() => navigate('/loginweb')}>로그인</button>
+          )}
+          <button className={styles.iconBtn} onClick={() => navigate('/favoritesweb')}><Heart size={20} /></button>
+          <button
+            className={styles.iconBtn}
+            onClick={() => navigate(isLoggedIn ? '/my-mapweb' : '/loginweb')}
+            title={currentUser.email || '마이페이지'}
+          >
+            <User size={20} />
+          </button>
         </nav>
       </header>
 

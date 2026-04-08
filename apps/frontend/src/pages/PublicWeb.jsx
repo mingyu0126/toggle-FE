@@ -7,11 +7,14 @@ import {
 } from 'lucide-react';
 import { mockPublicInstitutions } from '../mocks/public.mock';
 import StatusBadge from '../components/common/StatusBadge';
+import { clearAuthSession, getCurrentUser, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import styles from './PublicWeb.module.css';
 
 export default function PublicWeb() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
   
   // mock data lookup
   const place = mockPublicInstitutions.find(p => p.id === id) || mockPublicInstitutions[0]; 
@@ -30,6 +33,16 @@ export default function PublicWeb() {
 
   // 스크롤 상태
   const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const syncAuthState = () => {
+      setIsLoggedIn(getIsLoggedIn());
+      setCurrentUser(getCurrentUser());
+    };
+
+    window.addEventListener('authChanged', syncAuthState);
+    return () => window.removeEventListener('authChanged', syncAuthState);
+  }, []);
 
   useEffect(() => {
     if (place && place.lat && place.lng) {
@@ -105,6 +118,11 @@ export default function PublicWeb() {
 
   const coverImageUrl = "https://images.unsplash.com/photo-1577985051167-0d49eec21977?auto=format&fit=crop&w=800&q=80";
 
+  const handleLogout = () => {
+    clearAuthSession();
+    navigate('/loginweb');
+  };
+
   return (
     <div className={styles.webContainer}>
       {/* 글로벌 헤더 */}
@@ -140,9 +158,19 @@ export default function PublicWeb() {
         </div>
 
         <nav className={styles.navLinks}>
-          <button className={styles.navBtn} onClick={() => navigate('/login')}>점주 로그인</button>
-          <button className={styles.iconBtn}><Heart size={20} /></button>
-          <button className={styles.iconBtn}><User size={20} /></button>
+          {isLoggedIn ? (
+            <button className={styles.navBtn} onClick={handleLogout}>로그아웃</button>
+          ) : (
+            <button className={styles.navBtn} onClick={() => navigate('/loginweb')}>로그인</button>
+          )}
+          <button className={styles.iconBtn} onClick={() => navigate(isLoggedIn ? '/favoritesweb' : '/loginweb')}><Heart size={20} /></button>
+          <button
+            className={styles.iconBtn}
+            onClick={() => navigate(isLoggedIn ? '/my-mapweb' : '/loginweb')}
+            title={currentUser.email || '마이페이지'}
+          >
+            <User size={20} />
+          </button>
         </nav>
       </header>
 

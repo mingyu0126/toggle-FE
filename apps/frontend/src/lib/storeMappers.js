@@ -24,16 +24,22 @@ function createFallbackStore(item) {
 export function mapFavoriteStoreItemToPlace(item) {
   const externalPlaceId = String(item.externalPlaceId || item.storeId);
   const matched = mockStores.find((store) => String(store.id) === externalPlaceId || store.name === item.name);
+  const liveStatus = typeof window !== 'undefined'
+    ? localStorage.getItem(`storeStatus_${externalPlaceId}`)
+    : null;
 
   if (!matched) {
-    return createFallbackStore(item);
+    return {
+      ...createFallbackStore(item),
+      status: liveStatus || item.businessStatus,
+    };
   }
 
   return {
     ...matched,
     id: externalPlaceId,
     internalStoreId: item.storeId,
-    status: item.businessStatus || matched.status,
+    status: liveStatus || matched.status || item.businessStatus,
     address: item.address || matched.address,
     contact: item.phone || matched.contact,
     lat: Number(item.latitude ?? matched.lat),

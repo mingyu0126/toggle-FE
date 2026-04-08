@@ -1,5 +1,5 @@
 import { apiRequest } from './api';
-import { getBackendUserId, updateLocalFavoriteStore } from './session';
+import { getAuthHeaders, updateLocalFavoriteStore } from './session';
 
 const STORE_SOURCE = 'KAKAO';
 
@@ -12,12 +12,6 @@ function toResolveRequest(place) {
     phone: place.contact || place.phone || '',
     latitude: Number(place.lat),
     longitude: Number(place.lng),
-  };
-}
-
-function getAuthHeaders() {
-  return {
-    'X-User-Id': String(getBackendUserId()),
   };
 }
 

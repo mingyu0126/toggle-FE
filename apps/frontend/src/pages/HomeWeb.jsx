@@ -8,11 +8,14 @@ import { mockStores } from '../mocks/stores.mock';
 import { mockPublicInstitutions } from '../mocks/public.mock';
 import { CATEGORIES } from '../constants/status';
 import PlaceCard from '../components/common/PlaceCard';
+import { clearAuthSession, getCurrentUser, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import styles from './HomeWeb.module.css';
 
 export default function HomeWeb() {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState('전체');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
   
   // Map control states
   const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
@@ -25,6 +28,16 @@ export default function HomeWeb() {
   // Search Suggestions State
   const [suggestions, setSuggestions] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const syncAuthState = () => {
+      setIsLoggedIn(getIsLoggedIn());
+      setCurrentUser(getCurrentUser());
+    };
+
+    window.addEventListener('authChanged', syncAuthState);
+    return () => window.removeEventListener('authChanged', syncAuthState);
+  }, []);
 
   // 실시간 연관 검색어 (디바운스 처리)
   useEffect(() => {
@@ -127,6 +140,11 @@ export default function HomeWeb() {
   // Preview data for list
   const previewItems = [...mockStores.slice(0, 5), ...mockPublicInstitutions.slice(0, 3)];
 
+  const handleLogout = () => {
+    clearAuthSession();
+    navigate('/loginweb');
+  };
+
   return (
     <div className={styles.webContainer}>
       {/* 웹 전용 글로벌 헤더 */}
@@ -182,9 +200,21 @@ export default function HomeWeb() {
         </div>
 
         <nav className={styles.navLinks}>
-          <button className={styles.navBtn} onClick={() => navigate('/login')}>점주 로그인</button>
-          <button className={styles.iconBtn}><Heart size={20} /></button>
-          <button className={styles.iconBtn}><User size={20} /></button>
+          {isLoggedIn ? (
+            <button className={styles.navBtn} onClick={handleLogout}>로그아웃</button>
+          ) : (
+            <button className={styles.navBtn} onClick={() => navigate('/loginweb')}>로그인</button>
+          )}
+          <button className={styles.iconBtn} onClick={() => navigate(isLoggedIn ? '/favoritesweb' : '/loginweb')}>
+            <Heart size={20} />
+          </button>
+          <button
+            className={styles.iconBtn}
+            onClick={() => navigate(isLoggedIn ? '/my-mapweb' : '/loginweb')}
+            title={currentUser.email || '마이페이지'}
+          >
+            <User size={20} />
+          </button>
         </nav>
       </header>
 

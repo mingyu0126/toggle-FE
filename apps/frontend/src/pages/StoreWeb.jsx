@@ -8,7 +8,8 @@ import {
 import { mockStores } from '../mocks/stores.mock';
 import StatusBadge from '../components/common/StatusBadge';
 import { addFavoriteStore, removeFavoriteStore } from '../lib/favorites';
-import { getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
+import { clearAuthSession, getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
+import { getOwnerComment, getStoreLiveStatus } from '../lib/storeRuntime';
 import styles from './StoreWeb.module.css';
 
 export default function StoreWeb() {
@@ -16,10 +17,16 @@ export default function StoreWeb() {
   const navigate = useNavigate();
   
   // mock data lookup
-  const store = mockStores.find(s => s.id === id) || mockStores[0]; 
+  const initialStore = mockStores.find(s => s.id === id) || mockStores[0];
+  const store = {
+    ...initialStore,
+    status: getStoreLiveStatus(initialStore.id, initialStore.status),
+  };
+  const ownerComment = getOwnerComment(initialStore.id);
   const [isFavorite, setIsFavorite] = useState(() => getLocalFavorites().stores.map(String).includes(String(store.id)));
   const [isFavoriteSubmitting, setIsFavoriteSubmitting] = useState(false);
-  const isLoggedIn = getIsLoggedIn();
+  const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
 
   // Map control states
   const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
@@ -55,6 +62,16 @@ export default function StoreWeb() {
     window.addEventListener('favoritesChanged', syncFavoriteState);
     return () => window.removeEventListener('favoritesChanged', syncFavoriteState);
   }, [store.id]);
+
+  useEffect(() => {
+    const syncAuthState = () => {
+      setIsLoggedIn(getIsLoggedIn());
+      setCurrentUser(getCurrentUser());
+    };
+
+    window.addEventListener('authChanged', syncAuthState);
+    return () => window.removeEventListener('authChanged', syncAuthState);
+  }, []);
 
   const handleDirections = () => {
     if (store && store.lat && store.lng) {
@@ -218,6 +235,11 @@ export default function StoreWeb() {
     }
   };
 
+  const handleLogout = () => {
+    clearAuthSession();
+    navigate('/loginweb');
+  };
+
   return (
     <div className={styles.webContainer}>
       {/* 웹 전용 글로벌 헤더 */}
@@ -273,9 +295,19 @@ export default function StoreWeb() {
         </div>
 
         <nav className={styles.navLinks}>
-          <button className={styles.navBtn} onClick={() => navigate('/login')}>점주 로그인</button>
-          <button className={styles.iconBtn}><Heart size={20} /></button>
-          <button className={styles.iconBtn}><User size={20} /></button>
+          {isLoggedIn ? (
+            <button className={styles.navBtn} onClick={handleLogout}>로그아웃</button>
+          ) : (
+            <button className={styles.navBtn} onClick={() => navigate('/loginweb')}>로그인</button>
+          )}
+          <button className={styles.iconBtn} onClick={() => navigate(isLoggedIn ? '/favoritesweb' : '/loginweb')}><Heart size={20} /></button>
+          <button
+            className={styles.iconBtn}
+            onClick={() => navigate(isLoggedIn ? '/my-mapweb' : '/loginweb')}
+            title={currentUser.email || '마이페이지'}
+          >
+            <User size={20} />
+          </button>
         </nav>
       </header>
 
@@ -312,6 +344,13 @@ export default function StoreWeb() {
                 <StatusBadge status={store.status} type="STORE" size="md" />
                 <span className={styles.updateTime}>{store.lastStatusUpdate} 업데이트</span>
               </div>
+
+              {ownerComment && (
+                <div className={styles.noticeBox} style={{ background: 'rgba(59, 130, 246, 0.12)', borderColor: 'rgba(59, 130, 246, 0.25)', color: '#60a5fa' }}>
+                  <span style={{ fontWeight: 800, marginRight: '0.4rem' }}>📢 사장님 알림:</span>
+                  <span>"{ownerComment}"</span>
+                </div>
+              )}
 
               {store.notice && (
                 <div className={styles.noticeBox}>

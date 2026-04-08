@@ -17,7 +17,9 @@ Agents MUST:
 - follow defined workflows
 - follow rules in `.agents/rules`
 - use skills instead of ad-hoc reasoning
+- consult official docs via Context7 MCP before substantive implementation work when relevant libraries/frameworks are involved
 - produce structured outputs in `/handoff`
+- keep a dated working log in `/daily-log`
 
 ---
 
@@ -176,16 +178,65 @@ handoff/
 ├─ qa/
 ```
 
+Working logs MUST be saved under:
+```
+daily-log/
+└─ YYYY-MM-DD.md
+```
+
+---
+
+## 📝 Documentation Policy
+
+Before implementing a new feature or a substantial change:
+
+1. confirm whether a PRD or API/test handoff artifact already exists
+2. if missing, create or update the required artifact under `handoff/`
+3. align implementation to the latest handoff artifact before coding
+
+During and after meaningful work sessions:
+
+1. append or create a dated note in `daily-log/YYYY-MM-DD.md`
+2. record:
+   - what was done
+   - files or areas changed
+   - blockers or decisions
+   - next recommended actions
+
+During QA, verification, or review sessions:
+
+1. save the QA artifact under `handoff/qa/` when findings, validation scope, or regression coverage are produced
+2. also update `daily-log/YYYY-MM-DD.md` with:
+   - what was verified
+   - what issues were found
+   - what was fixed or remains open
+
+Use `handoff/` for role-based deliverables that should survive across conversations.
+
+Use `daily-log/` for chronological work history, session notes, and next-step continuity.
+
+For implementation work involving frameworks, libraries, or platform APIs:
+
+1. identify the primary technology involved
+2. consult the relevant official documentation through Context7 MCP first
+3. use the documented pattern as the default implementation baseline
+4. if Context7 is unavailable or insufficient, note the limitation briefly in `daily-log`
+
 ---
 
 ## 🚨 Global Rules
 
 - NEVER skip PRD step for new features
 - NEVER design API without defined scope
+- NEVER start substantive implementation before checking relevant `handoff/` artifacts
+- NEVER skip Context7 MCP doc review before substantive implementation when an applicable library/framework exists
 - NEVER finalize entity design before ERD/schema review when schema changed
 - NEVER implement without considering permissions
+- NEVER finish QA/review work without writing the result to `handoff/qa` when the work produced meaningful findings or validation coverage
 - ALWAYS validate role boundaries
 - ALWAYS ensure consistency across map/list/detail
+- ALWAYS leave an updated `daily-log` entry after substantive implementation, refactoring, investigation, or planning work
+- ALWAYS leave an updated `daily-log` entry after substantive QA, review, or verification work
 
 ---
 
@@ -194,10 +245,18 @@ handoff/
 When handling a request:
 
 1. Identify intent
-2. Select appropriate workflow
-3. Execute steps in order
-4. Use defined skills
-5. Save outputs to correct location
+2. Check existing `handoff/` and `daily-log/` context first
+3. Check relevant official docs with Context7 MCP when implementation is involved
+4. Select appropriate workflow
+5. Execute steps in order
+6. Use defined skills
+7. Save outputs to correct location
+8. Update `daily-log` if the session produced meaningful progress, decisions, or next steps
+
+If the request includes QA, review, validation, or bug-finding:
+
+1. create or update the corresponding artifact under `handoff/qa`
+2. record findings and validation outcome in `daily-log`
 
 ---
 

@@ -1,21 +1,41 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Store, ChevronRight, Navigation } from 'lucide-react';
+import { login } from '../lib/auth';
+import { persistAuthSession } from '../lib/session';
 import styles from './LoginWeb.module.css';
 
 export default function LoginWeb() {
   const navigate = useNavigate();
   // 'USER' | 'OWNER'
   const [loginType, setLoginType] = useState('USER');
-  const [id, setId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (loginType === 'USER') {
-      navigate('/mapweb');
-    } else {
-      navigate('/pos');
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      const data = await login({
+        email,
+        password,
+      });
+
+      if (data.user?.role !== loginType) {
+        throw new Error(loginType === 'USER' ? '일반 사용자 계정으로 로그인해 주세요.' : '점주 계정으로 로그인해 주세요.');
+      }
+
+      persistAuthSession(data, { rememberMe });
+      navigate(loginType === 'USER' ? '/mapweb' : '/pos');
+    } catch (loginError) {
+      setError(loginError.message || '로그인에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -89,14 +109,14 @@ export default function LoginWeb() {
 
           <form className={styles.form} onSubmit={handleLogin}>
             <div className={styles.inputWrapper}>
-              <label>아이디</label>
+              <label>이메일</label>
               <div className={styles.inputGroup}>
                 <input
-                  type="text"
-                  placeholder={loginType === 'USER' ? "아이디를 입력하세요" : "가입하신 매장 ID"}
+                  type="email"
+                  placeholder={loginType === 'USER' ? "이메일을 입력하세요" : "가입하신 매장 이메일"}
                   className={styles.input}
-                  value={id}
-                  onChange={(e) => setId(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
                 <User className={styles.inputIcon} size={20} />
@@ -120,17 +140,20 @@ export default function LoginWeb() {
 
             <div className={styles.formActions}>
               <label className={styles.checkboxLabel}>
-                <input type="checkbox" />
+                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
                 <span>로그인 상태 유지</span>
               </label>
               <a href="#" className={styles.forgotLink}>비밀번호를 잊으셨나요?</a>
             </div>
 
+            {error && <p style={{ color: '#f87171', margin: 0 }}>{error}</p>}
+
             <button 
               type="submit" 
+              disabled={isSubmitting}
               className={`${styles.submitBtn} ${loginType === 'OWNER' ? styles.ownerBtn : ''}`}
             >
-              {loginType === 'USER' ? '로그인' : 'POS Dashboard 접근'} <ChevronRight size={20} strokeWidth={3} />
+              {isSubmitting ? '처리 중...' : (loginType === 'USER' ? '로그인' : 'POS Dashboard 접근')} <ChevronRight size={20} strokeWidth={3} />
             </button>
           </form>
 

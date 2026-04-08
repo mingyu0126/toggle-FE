@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Store, ChevronRight, Navigation, Mail } from 'lucide-react';
+import { signup } from '../lib/auth';
 import styles from './LoginWeb.module.css'; // 디자인 테마 공유
 
 export default function SignupWeb() {
@@ -10,34 +11,37 @@ export default function SignupWeb() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
+    setError('');
+
     if (password !== confirmPassword) {
-      alert('비밀번호가 일치하지 않습니다.');
+      setError('비밀번호가 일치하지 않습니다.');
       return;
     }
 
-    // 로컬스토리지 유저 라이브 싱크
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    if (users.some(u => u.id === email)) {
-      alert('이미 존재하는 이메일입니다.');
-      return;
+    setIsSubmitting(true);
+
+    try {
+      await signup({
+        email,
+        password,
+        nickname: name,
+        role: loginType,
+      });
+
+      alert(loginType === 'OWNER'
+        ? '점주 계정이 생성되었습니다. 로그인 후 매장 등록을 진행해 주세요.'
+        : '회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.');
+      navigate('/loginweb');
+    } catch (signupError) {
+      setError(signupError.message || '회원가입 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const newUser = {
-      id: email,
-      password,
-      nickname: name,
-      type: loginType,
-      favorites: { stores: [], publics: [] }
-    };
-
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-
-    alert('회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.');
-    navigate('/loginweb');
   };
 
   return (
@@ -70,7 +74,7 @@ export default function SignupWeb() {
           </button>
           
           <h2 className={styles.formTitle}>{loginType === 'USER' ? '계정 만들기 ✏️' : '점주 파트너 가입 💼'}</h2>
-          <p className={styles.formSubtitle}>{loginType === 'USER' ? 'Toggle과 함께 스마트한 이동을 시작하세요.' : 'POS 시스템과 실시간 연동을 준비해 드립니다.'}</p>
+          <p className={styles.formSubtitle}>{loginType === 'USER' ? 'Toggle과 함께 스마트한 이동을 시작하세요.' : '점주 계정을 만든 뒤 로그인 후 매장 운영 권한을 신청하세요.'}</p>
 
           {/* User Type Toggle */}
           <div className={styles.tabContainer}>
@@ -137,12 +141,15 @@ export default function SignupWeb() {
               </div>
             </div>
 
+            {error && <p style={{ color: '#f87171', margin: 0 }}>{error}</p>}
+
             <button 
               type="submit" 
+              disabled={isSubmitting}
               className={`${styles.submitBtn} ${loginType === 'OWNER' ? styles.ownerBtn : ''}`} 
               style={{ marginTop: '1.5rem' }}
             >
-              {loginType === 'USER' ? '무료 회원가입' : '점주 가입 완료'} <ChevronRight size={20} strokeWidth={3} />
+              {isSubmitting ? '처리 중...' : (loginType === 'USER' ? '무료 회원가입' : '점주 계정 만들기')} <ChevronRight size={20} strokeWidth={3} />
             </button>
           </form>
 

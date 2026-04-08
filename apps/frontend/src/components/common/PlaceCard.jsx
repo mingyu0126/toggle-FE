@@ -5,6 +5,7 @@ import StatusBadge from './StatusBadge';
 import LoginModal from './LoginModal'; // 글로벌 유도 적용을 위해 내포
 import { addFavoriteStore, removeFavoriteStore } from '../../lib/favorites';
 import { getLocalFavorites, isLoggedIn as getIsLoggedIn, updateLocalFavorite } from '../../lib/session';
+import { getStoreLiveStatus } from '../../lib/storeRuntime';
 import styles from './PlaceCard.module.css';
 
 export default function PlaceCard({ place, type = 'STORE', isWeb = false, showFavorite = true, onClick }) {
@@ -21,7 +22,7 @@ export default function PlaceCard({ place, type = 'STORE', isWeb = false, showFa
   });
 
   // 실시간 상태 주입 (점주 POS 연동)
-  const liveStatus = isStore ? (localStorage.getItem(`storeStatus_${place.id}`) || place.status) : place.status;
+  const liveStatus = isStore ? getStoreLiveStatus(place.id, place.status) : place.status;
 
   React.useEffect(() => {
     const handleFavoritesChanged = () => {

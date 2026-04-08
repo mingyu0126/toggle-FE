@@ -1,45 +1,42 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Store, ChevronRight } from 'lucide-react';
+import { login } from '../lib/auth';
+import { persistAuthSession } from '../lib/session';
 import styles from './Login.module.css';
 
 export default function Login() {
   const navigate = useNavigate();
   // 'USER' | 'OWNER'
   const [loginType, setLoginType] = useState('USER');
-  const [id, setId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false); // 추가
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    
-    // 로컬스토리지 유저 DB 검색
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const foundUser = users.find(u => u.id === id && u.password === password && u.type === loginType);
 
-    if (foundUser) {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('currentUser', JSON.stringify(foundUser)); // 로그인 유저 정보 저장
-      
-      if (rememberMe) {
-        localStorage.setItem('rememberMe', 'true'); // 유지 플래그 시뮬레이션
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      const data = await login({
+        email,
+        password,
+      });
+
+      if (data.user?.role !== loginType) {
+        throw new Error(loginType === 'USER' ? '일반 사용자 계정으로 로그인해 주세요.' : '점주 계정으로 로그인해 주세요.');
       }
 
-      if (loginType === 'USER') {
-        navigate('/map');
-      } else {
-        navigate('/pos');
-      }
-    } else {
-      // 초기 테스팅용 예외: 아이디가 'default' 일 때도 패스 가능 백업 가늠
-      if (id === 'default' && password === '1234') {
-         localStorage.setItem('isLoggedIn', 'true');
-         localStorage.setItem('currentUser', JSON.stringify({ id: 'default', nickname: '프리셋유저', type: 'USER', favorites: { stores: [], publics: [] } }));
-         navigate('/map');
-         return;
-      }
-      alert('아이디 혹은 비밀번호가 일치하지 않습니다.');
+      persistAuthSession(data, { rememberMe });
+      navigate(loginType === 'USER' ? '/map' : '/pos');
+    } catch (loginError) {
+      setError(loginError.message || '이메일 또는 비밀번호가 일치하지 않습니다.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -78,10 +75,10 @@ export default function Login() {
           <div className={`${styles.inputGroup} ${styles.formElement}`}>
             <input
               type="text"
-              placeholder={loginType === 'USER' ? "아이디를 입력하세요" : "매장 관리자 ID"}
+              placeholder={loginType === 'USER' ? "이메일을 입력하세요" : "매장 관리자 이메일"}
               className={styles.input}
-              value={id}
-              onChange={(e) => setId(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
             <User className={styles.inputIcon} size={20} />
@@ -113,15 +110,18 @@ export default function Login() {
           <div className={`${styles.footerActions} ${styles.formElement}`}>
             <button type="button" className={styles.actionLink}>아이디/비밀번호 찾기</button>
             <button type="button" className={styles.actionLink} onClick={() => navigate('/signup')}>
-              {loginType === 'USER' ? '회원가입' : '점주 가입 신청'}
+              {loginType === 'USER' ? '회원가입' : '점주 계정 만들기'}
             </button>
           </div>
 
+          {error && <p className={styles.formElement} style={{ color: '#f87171', margin: 0 }}>{error}</p>}
+
           <button 
             type="submit" 
+            disabled={isSubmitting}
             className={`${styles.submitBtn} ${loginType === 'OWNER' ? styles.ownerBtn : ''} ${styles.formElement}`}
           >
-            {loginType === 'USER' ? '로그인' : 'POS Dashboard 접근'} <ChevronRight size={20} strokeWidth={3} />
+            {isSubmitting ? '처리 중...' : (loginType === 'USER' ? '로그인' : 'POS Dashboard 접근')} <ChevronRight size={20} strokeWidth={3} />
           </button>
         </form>
 

@@ -2,13 +2,16 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 
 export async function apiRequest(path, options = {}) {
   const { headers = {}, body, ...rest } = options;
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...headers,
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body
+      ? (isFormData ? body : JSON.stringify(body))
+      : undefined,
     ...rest,
   });
 

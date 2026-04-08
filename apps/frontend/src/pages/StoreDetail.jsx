@@ -7,6 +7,7 @@ import StatusBadge from '../components/common/StatusBadge';
 import LoginModal from '../components/common/LoginModal'; // 추가
 import { addFavoriteStore, removeFavoriteStore } from '../lib/favorites';
 import { getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
+import { getOwnerComment, getStoreLiveStatus } from '../lib/storeRuntime';
 import styles from './StoreDetail.module.css';
 
 export default function StoreDetail() {
@@ -19,7 +20,7 @@ export default function StoreDetail() {
   const [isFavoriteSubmitting, setIsFavoriteSubmitting] = useState(false);
   const isLoggedIn = getIsLoggedIn();
   const initialStore = mockStores.find(s => String(s.id) === id) || mockStores[0]; 
-  const ownerComment = localStorage.getItem(`ownerComment_${initialStore.id}`) || ''; // 사장님 코멘트 피드
+  const ownerComment = getOwnerComment(initialStore.id);
   const [isFavorite, setIsFavorite] = useState(() => getLocalFavorites().stores.map(String).includes(String(initialStore.id)));
 
   // Sheet drag state (Home.jsx와 동일한 100% 레이아웃 형태 복귀)
@@ -76,7 +77,7 @@ export default function StoreDetail() {
   }, [isDragging]);
   
   // mock data lookup
-  const liveStatus = localStorage.getItem(`storeStatus_${initialStore.id}`) || initialStore.status;
+  const liveStatus = getStoreLiveStatus(initialStore.id, initialStore.status);
   const store = { ...initialStore, status: liveStatus }; 
 
   useEffect(() => {

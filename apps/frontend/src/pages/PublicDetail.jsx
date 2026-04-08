@@ -5,6 +5,7 @@ import { Map, MapMarker } from 'react-kakao-maps-sdk';
 import { mockPublicInstitutions } from '../mocks/public.mock';
 import StatusBadge from '../components/common/StatusBadge';
 import LoginModal from '../components/common/LoginModal'; // 추가
+import { isLoggedIn as getIsLoggedIn } from '../lib/session';
 import styles from './PublicDetail.module.css'; // 전용 CSS 사용
 
 export default function PublicDetail() {
@@ -14,7 +15,7 @@ export default function PublicDetail() {
   const [viewMode, setViewMode] = useState('IMAGE'); // 'IMAGE' or 'MAP'
 
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'; // 비회원 시뮬레이션
+  const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
 
   // Sheet drag state (StoreDetail과 동일 레이아웃)
   const [sheetHeight, setSheetHeight] = useState(55); // 기본 55%
@@ -70,7 +71,12 @@ export default function PublicDetail() {
   const place = mockPublicInstitutions.find(p => p.id === id) || mockPublicInstitutions[0];
 
   useEffect(() => {
-    // 이제 내부 스크롤 div에서 이벤트를 핸들링합니다.
+    const syncAuthState = () => {
+      setIsLoggedIn(getIsLoggedIn());
+    };
+
+    window.addEventListener('authChanged', syncAuthState);
+    return () => window.removeEventListener('authChanged', syncAuthState);
   }, []);
 
   const handleScroll = (e) => {

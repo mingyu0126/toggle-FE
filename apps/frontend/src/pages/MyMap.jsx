@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Share2, User, Heart, MapPin, List as ListIcon, Settings, Search, Edit2, Camera } from 'lucide-react';
 import { mockUser } from '../mocks/users.mock';
@@ -8,22 +8,25 @@ import { mockPublicInstitutions } from '../mocks/public.mock';
 import PlaceCard from '../components/common/PlaceCard';
 import { Map, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import LoginModal from '../components/common/LoginModal'; // 로그인 유도 모달 추가
+import { clearAuthSession, getCurrentUser, isLoggedIn as getIsLoggedIn, updateCurrentUser } from '../lib/session';
 import styles from './MyMap.module.css';
 
 export default function MyMap() {
   const navigate = useNavigate();
-  const [isPublic, setIsPublic] = useState(mockUser.myMapSettings.isPublic);
+  const initialUser = getCurrentUser();
+  const initialDisplayName = initialUser.nickname || initialUser.email?.split('@')[0] || mockUser.nickname;
+  const [isPublic, setIsPublic] = useState(initialUser.isPublicMap ?? false);
   const [activeCategory, setActiveCategory] = useState('전체');
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [activeTab, setActiveTab ] = useState('STORE'); // 'STORE' | 'PUBLIC' | 'SEARCH'
   const [viewMode, setViewMode] = useState('LIST'); // 'LIST' | 'MAP'
   
   // 로그인 상태 시뮬레이션 및 모달 상태
-  const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true'); // 로컬스토리지 기반 개발자 모드 대응
-  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const [isLoggedIn, setIsLoggedIn] = useState(getIsLoggedIn());
+  const [currentUser, setCurrentUser] = useState(initialUser);
 
   // 편집 기능용 상태
-  const [mapTitle, setMapTitle] = useState(currentUser.mapTitle || '토글러님의 지도');
+  const [mapTitle, setMapTitle] = useState(currentUser.mapTitle || `${initialDisplayName}님의 지도`);
   const [mapDesc, setMapDesc] = useState(currentUser.mapDesc || '우리 동네 찐맛집과 핫플레이스를 모아둔 지도입니다. 📍');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDesc, setIsEditingDesc] = useState(false);
@@ -31,12 +34,8 @@ export default function MyMap() {
   const fileInputRef = useRef(null);
 
   const updateCurrentUserFields = (fields) => {
-    const updated = { ...currentUser, ...fields };
-    localStorage.setItem('currentUser', JSON.stringify(updated));
-    
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = users.map(u => u.id === currentUser.id ? { ...u, ...fields } : u);
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
+    const updated = updateCurrentUser(fields);
+    setCurrentUser(updated);
   };
 
   const handleRemoveProfileImage = (e) => {
@@ -54,6 +53,23 @@ export default function MyMap() {
 
   // 현재 사용자 나만의 지도 에 등록된 항목들 (로컬스토리지 동기화)
   const [myMapPlaces, setMyMapPlaces] = useState(currentUser.myMap || { stores: [], publics: [] });
+
+  useEffect(() => {
+    const syncAuthState = () => {
+      const latestUser = getCurrentUser();
+      const latestDisplayName = latestUser.nickname || latestUser.email?.split('@')[0] || '내 사용자';
+      setCurrentUser(latestUser);
+      setIsLoggedIn(getIsLoggedIn());
+      setIsPublic(latestUser.isPublicMap ?? false);
+      setMyMapPlaces(latestUser.myMap || { stores: [], publics: [] });
+      setMapTitle(latestUser.mapTitle || `${latestDisplayName}님의 지도`);
+      setMapDesc(latestUser.mapDesc || '우리 동네 찐맛집과 핫플레이스를 모아둔 지도입니다. 📍');
+      setProfileImage(latestUser.profileImage || null);
+    };
+
+    window.addEventListener('authChanged', syncAuthState);
+    return () => window.removeEventListener('authChanged', syncAuthState);
+  }, []);
 
   const favStores = mockStores.filter(s => myMapPlaces.stores && myMapPlaces.stores.includes(s.id));
   const favPublics = mockPublicInstitutions.filter(p => myMapPlaces.publics && myMapPlaces.publics.includes(p.id));
@@ -159,12 +175,13 @@ export default function MyMap() {
       setShowLoginModal(true);
       return;
     }
-    setIsPublic(!isPublic);
+    const nextValue = !isPublic;
+    setIsPublic(nextValue);
+    updateCurrentUserFields({ isPublicMap: nextValue });
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('currentUser');
+    clearAuthSession();
     navigate('/login');
   };
 
@@ -284,7 +301,7 @@ export default function MyMap() {
                  </div>
               )}
 
-              <p className={styles.userId}>ID: @{searchedUser ? searchedUser.username : 'toggle_user_1'}</p>
+              <p className={styles.userId}>ID: @{searchedUser ? searchedUser.username : (currentUser.email || currentUser.id || 'guest')}</p>
                  </>
               )}
             </div>

@@ -3,12 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, Store as StoreIcon, Play, Pause, Square, AlertTriangle, Clock, Settings, List } from 'lucide-react';
 import { STATUS_TYPES } from '../constants/status';
 import StatusBadge from '../components/common/StatusBadge';
+import { logout as logoutRequest } from '../lib/auth';
+import { clearAuthSession, getCurrentUser, getRefreshToken } from '../lib/session';
+import { createOwnerStoreApplication, fetchMyOwnerStoreApplications, fetchMyOwnerStores, updateOwnerStoreStatus } from '../lib/owner';
 import styles from './Pos.module.css';
 
 export default function Pos() {
   const navigate = useNavigate();
-  // 모의 점주 데이터: 초기엔 POS 로그인 시 자동으로 영업중 처리한다고 가정
-  const [storeStatus, setStoreStatus] = useState(localStorage.getItem('storeStatus_store-1') || STATUS_TYPES.STORE.OPEN);
+  const currentUser = getCurrentUser();
+  const [linkedStores, setLinkedStores] = useState([]);
+  const [selectedStoreId, setSelectedStoreId] = useState(null);
+  const [applications, setApplications] = useState([]);
+  const [applicationError, setApplicationError] = useState('');
+  const [isLoadingOwnerData, setIsLoadingOwnerData] = useState(true);
+  const [isSubmittingApplication, setIsSubmittingApplication] = useState(false);
+  const [statusError, setStatusError] = useState('');
+  const [applicationForm, setApplicationForm] = useState({
+    businessName: '',
+    businessNumber: '',
+    businessAddress: '',
+    businessLicenseFile: null,
+  });
+  const selectedStore = linkedStores.find((store) => store.storeId === selectedStoreId) || linkedStores[0] || null;
+  const displayStoreName = selectedStore?.storeName || currentUser.nickname || '연결 대기 중';
+  const displayStoreId = selectedStore?.storeId || currentUser.email || currentUser.id || 'owner';
+  const [storeStatus, setStoreStatus] = useState(STATUS_TYPES.STORE.CLOSED);
   const [activePanel, setActivePanel] = useState(null); // 'BREAK_TIME', 'TEMP_CLOSED', 'EARLY_CLOSED'
   
   // 브레이크타임 설정 폼 상태
@@ -16,26 +35,69 @@ export default function Pos() {
   const [breakEnd, setBreakEnd] = useState('17:00');
 
   // 사장님 실시간 코멘트 상태
-  const [ownerComment, setOwnerComment] = useState(localStorage.getItem('ownerComment_store-1') || '');
+  const [ownerComment, setOwnerComment] = useState('');
 
   // 히스토리 초기값 (로그인 즉시 영업중으로 기록됨)
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
-    // POS 로그인 시 초기 '영업중' 전환 시뮬레이션
     const now = new Date();
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setHistory([{ status: storeStatus, time: timeStr, msg: '포스기 로그인 (인증 완료)' }]);
-    
-    // 로컬스토리지에 상태 동기화 (초기값 없을 때만)
-    if (!localStorage.getItem('storeStatus_store-1')) {
-       localStorage.setItem('storeStatus_store-1', STATUS_TYPES.STORE.OPEN);
-    }
+    setHistory([{ status: STATUS_TYPES.STORE.CLOSED, time: timeStr, msg: '포스기 로그인 (인증 완료)' }]);
   }, []);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadOwnerData() {
+      try {
+        const [stores, myApplications] = await Promise.all([
+          fetchMyOwnerStores(),
+          fetchMyOwnerStoreApplications(),
+        ]);
+
+        if (!ignore) {
+          setLinkedStores(stores);
+          setSelectedStoreId(stores[0]?.storeId ?? null);
+          setApplications(myApplications);
+        }
+      } catch (error) {
+        if (!ignore) {
+          setApplicationError(error.message || '점주 데이터를 불러오지 못했습니다.');
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoadingOwnerData(false);
+        }
+      }
+    }
+
+    loadOwnerData();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedStore) {
+      setStoreStatus(selectedStore.liveBusinessStatus);
+      setStatusError('');
+    }
+  }, [selectedStore]);
+
+  const handleLogout = async () => {
     // 로그아웃 시 자동 영업종료 처리 모의
     alert('POS 로그아웃. 매장 상태가 자동으로 [영업종료] 처리됩니다.');
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      try {
+        await logoutRequest(refreshToken);
+      } catch {
+        // Ignore logout API failures, local session must still be cleared.
+      }
+    }
+    clearAuthSession();
     navigate('/login');
   };
 
@@ -44,48 +106,99 @@ export default function Pos() {
     setHistory(prev => [{ status, time: timeStr, msg }, ...prev]);
   };
 
+  const refreshOwnerData = async () => {
+    const [stores, myApplications] = await Promise.all([
+      fetchMyOwnerStores(),
+      fetchMyOwnerStoreApplications(),
+    ]);
+    setLinkedStores(stores);
+    setApplications(myApplications);
+    setSelectedStoreId((current) => {
+      if (current && stores.some((store) => store.storeId === current)) {
+        return current;
+      }
+      return stores[0]?.storeId ?? null;
+    });
+    return stores;
+  };
+
+  const applyStoreStatus = async (nextStatus, message, nextActivePanel = null) => {
+    if (!selectedStore) {
+      return;
+    }
+
+    setStatusError('');
+
+    try {
+      const updated = await updateOwnerStoreStatus(selectedStore.storeId, {
+        status: nextStatus,
+        comment: ownerComment,
+      });
+      setStoreStatus(updated.liveBusinessStatus);
+      setActivePanel(nextActivePanel);
+      logHistory(updated.liveBusinessStatus, message);
+      await refreshOwnerData();
+    } catch (error) {
+      setStatusError(error.message || '매장 상태 변경 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleStatusClick = (type) => {
     if (type === STATUS_TYPES.STORE.OPEN) {
-      setStoreStatus(type);
-      setActivePanel(null);
-      logHistory(type, '영업 재개 처리');
-      localStorage.setItem('storeStatus_store-1', type);
+      applyStoreStatus(type, '영업 재개 처리', null);
     } else if (type === STATUS_TYPES.STORE.CLOSED) {
-      setStoreStatus(type);
-      setActivePanel(null);
-      logHistory(type, '영업 종료 처리');
-      localStorage.setItem('storeStatus_store-1', type);
+      applyStoreStatus(type, '영업 종료 처리', null);
     } else {
-      // 기타 상태는 설정 패널 열기
       setActivePanel(activePanel === type ? null : type);
     }
   };
 
   const handleApplyBreak = () => {
-    setStoreStatus(STATUS_TYPES.STORE.BREAK_TIME);
-    logHistory(STATUS_TYPES.STORE.BREAK_TIME, `브레이크타임 시작 (${breakStart} ~ ${breakEnd})`);
-    setActivePanel(null);
-    localStorage.setItem('storeStatus_store-1', STATUS_TYPES.STORE.BREAK_TIME);
+    applyStoreStatus(STATUS_TYPES.STORE.BREAK_TIME, `브레이크타임 시작 (${breakStart} ~ ${breakEnd})`, null);
   };
 
   const handleApplyTemp = () => {
-    setStoreStatus(STATUS_TYPES.STORE.TEMP_CLOSED);
-    logHistory(STATUS_TYPES.STORE.TEMP_CLOSED, '긴급 임시휴무 처리');
-    setActivePanel(null);
-    localStorage.setItem('storeStatus_store-1', STATUS_TYPES.STORE.TEMP_CLOSED);
+    applyStoreStatus(STATUS_TYPES.STORE.TEMP_CLOSED, '긴급 임시휴무 처리', null);
   };
 
   const handleApplyEarly = () => {
-    setStoreStatus(STATUS_TYPES.STORE.EARLY_CLOSED);
-    logHistory(STATUS_TYPES.STORE.EARLY_CLOSED, '재료소진 등으로 조기마감');
-    setActivePanel(null);
-    localStorage.setItem('storeStatus_store-1', STATUS_TYPES.STORE.EARLY_CLOSED);
+    applyStoreStatus(STATUS_TYPES.STORE.EARLY_CLOSED, '재료소진 등으로 조기마감', null);
   };
 
   const handleSaveComment = () => {
-    localStorage.setItem('ownerComment_store-1', ownerComment);
     logHistory(storeStatus, `📢 사장님 코멘트 변경: "${ownerComment}"`);
     alert('코멘트가 배포되었습니다!');
+  };
+
+  const handleChangeApplicationField = (field, value) => {
+    setApplicationForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmitApplication = async (e) => {
+    e.preventDefault();
+    setApplicationError('');
+    setIsSubmittingApplication(true);
+
+    try {
+      await createOwnerStoreApplication(applicationForm);
+      const [stores, myApplications] = await Promise.all([
+        fetchMyOwnerStores(),
+        fetchMyOwnerStoreApplications(),
+      ]);
+      setLinkedStores(stores);
+      setApplications(myApplications);
+      setApplicationForm({
+        businessName: '',
+        businessNumber: '',
+        businessAddress: '',
+        businessLicenseFile: null,
+      });
+      alert('매장 등록 신청이 접수되었습니다.');
+    } catch (error) {
+      setApplicationError(error.message || '매장 등록 신청 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmittingApplication(false);
+    }
   };
 
   // 버튼 활성화용 스타일 클래스 추출
@@ -114,8 +227,8 @@ export default function Pos() {
       <main className={styles.content}>
         <div className={styles.storeInfoCard}>
           <div>
-            <div className={styles.storeName}>맛있는 덮밥집 본점</div>
-            <div className={styles.storeId}>Store ID: 1984-2938</div>
+            <div className={styles.storeName}>{displayStoreName}</div>
+            <div className={styles.storeId}>Store ID: {displayStoreId}</div>
           </div>
           <div className={styles.statusWrapper}>
             <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', fontWeight: 600 }}>현업 영업 상태 (LIVE)</span>
@@ -124,35 +237,124 @@ export default function Pos() {
         </div>
 
         <section className={styles.section}>
+          <h2 className={styles.sectionTitle}><StoreIcon size={20} /> 내 매장 연결 현황</h2>
+          <div className={styles.settingsPanel}>
+            {isLoadingOwnerData ? (
+              <p style={{ margin: 0 }}>점주 정보를 불러오는 중입니다...</p>
+            ) : linkedStores.length > 0 ? (
+              <>
+                <p style={{ margin: 0, color: 'var(--color-text-secondary)' }}>현재 연결된 매장 {linkedStores.length}개</p>
+                {linkedStores.length > 1 && (
+                  <select
+                    className={styles.timeInput}
+                    value={selectedStore?.storeId ?? ''}
+                    onChange={(e) => setSelectedStoreId(Number(e.target.value))}
+                  >
+                    {linkedStores.map((store) => (
+                      <option key={store.linkId} value={store.storeId}>
+                        {store.storeName}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {linkedStores.map((store) => (
+                  <div key={store.linkId} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', padding: '0.75rem 0', borderBottom: '1px solid rgba(148,163,184,0.15)' }}>
+                    <div>
+                      <div style={{ fontWeight: 700 }}>{store.storeName}</div>
+                      <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>{store.storeAddress}</div>
+                    </div>
+                    <StatusBadge status={store.liveBusinessStatus} type="STORE" />
+                  </div>
+                ))}
+              </>
+            ) : (
+              <p style={{ margin: 0, color: 'var(--color-text-secondary)' }}>아직 연결된 매장이 없습니다. 아래에서 사업자 등록과 매장 운영 권한을 신청해 주세요.</p>
+            )}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}><List size={20} /> 매장 등록 신청</h2>
+          <form className={styles.settingsPanel} onSubmit={handleSubmitApplication} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <input
+              className={styles.timeInput}
+              placeholder="상호명"
+              value={applicationForm.businessName}
+              onChange={(e) => handleChangeApplicationField('businessName', e.target.value)}
+              required
+            />
+            <input
+              className={styles.timeInput}
+              placeholder="사업자 등록번호 (예: 123-45-67890)"
+              value={applicationForm.businessNumber}
+              onChange={(e) => handleChangeApplicationField('businessNumber', e.target.value)}
+              required
+            />
+            <input
+              className={styles.timeInput}
+              placeholder="사업자 등록 주소"
+              value={applicationForm.businessAddress}
+              onChange={(e) => handleChangeApplicationField('businessAddress', e.target.value)}
+              required
+            />
+            <input
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg"
+              onChange={(e) => handleChangeApplicationField('businessLicenseFile', e.target.files?.[0] || null)}
+              required
+            />
+            {applicationError && <p style={{ color: '#f87171', margin: 0 }}>{applicationError}</p>}
+            <button className={styles.applyBtn} type="submit" disabled={isSubmittingApplication}>
+              {isSubmittingApplication ? '신청 중...' : '매장 등록 신청하기'}
+            </button>
+          </form>
+        </section>
+
+        <section className={styles.section}>
           <h2 className={styles.sectionTitle}><Settings size={20} /> 실시간 상태 관리</h2>
+          {!selectedStore && (
+            <div className={styles.settingsPanel} style={{ marginBottom: '1rem' }}>
+              연결된 매장이 아직 없어 상태 변경은 비활성화됩니다.
+            </div>
+          )}
+          {statusError && (
+            <div className={styles.settingsPanel} style={{ marginBottom: '1rem', color: '#f87171' }}>
+              {statusError}
+            </div>
+          )}
           <div className={styles.statusGrid}>
             <button 
               className={`${styles.statusBtn} ${getActiveClass(STATUS_TYPES.STORE.OPEN)}`}
               onClick={() => handleStatusClick(STATUS_TYPES.STORE.OPEN)}
+              disabled={!selectedStore}
             >
               <Play size={28} /> 영업중 전환
             </button>
             <button 
               className={`${styles.statusBtn} ${getActiveClass(STATUS_TYPES.STORE.BREAK_TIME)}`}
               onClick={() => handleStatusClick(STATUS_TYPES.STORE.BREAK_TIME)}
+              disabled={!selectedStore}
             >
               <Pause size={28} /> 브레이크타임
             </button>
             <button 
               className={`${styles.statusBtn} ${getActiveClass(STATUS_TYPES.STORE.CLOSED)}`}
               onClick={() => handleStatusClick(STATUS_TYPES.STORE.CLOSED)}
+              disabled={!selectedStore}
             >
               <Square size={28} /> 영업 종료
             </button>
             <button 
               className={`${styles.statusBtn} ${getActiveClass(STATUS_TYPES.STORE.EARLY_CLOSED)}`}
               onClick={() => handleStatusClick(STATUS_TYPES.STORE.EARLY_CLOSED)}
+              disabled={!selectedStore}
             >
               <Clock size={28} /> 조기 마감
             </button>
             <button 
               className={`${styles.statusBtn} ${getActiveClass(STATUS_TYPES.STORE.TEMP_CLOSED)}`}
               onClick={() => handleStatusClick(STATUS_TYPES.STORE.TEMP_CLOSED)}
+              disabled={!selectedStore}
             >
               <AlertTriangle size={28} /> 임시 휴무
             </button>

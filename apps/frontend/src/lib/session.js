@@ -1,27 +1,129 @@
+import { fetchMe, refreshToken as refreshTokenRequest } from './auth';
+
 const DEFAULT_FAVORITES = { stores: [], publics: [] };
+const ACCESS_TOKEN_KEY = 'accessToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
+const CURRENT_USER_KEY = 'currentUser';
+const LOGGED_IN_KEY = 'isLoggedIn';
+const REMEMBER_ME_KEY = 'rememberMe';
+
+function dispatchSessionEvent(type, detail = {}) {
+  window.dispatchEvent(new CustomEvent(type, { detail }));
+}
 
 export function getCurrentUser() {
   try {
-    return JSON.parse(localStorage.getItem('currentUser') || '{}');
+    return JSON.parse(localStorage.getItem(CURRENT_USER_KEY) || '{}');
   } catch {
     return {};
   }
 }
 
-export function isLoggedIn() {
-  return localStorage.getItem('isLoggedIn') === 'true';
+export function getCurrentUserRole() {
+  return getCurrentUser().role || getCurrentUser().type || '';
 }
 
-export function getBackendUserId() {
-  const currentUser = getCurrentUser();
-  const fromUser = Number(currentUser.backendUserId ?? currentUser.id);
+export function isLoggedIn() {
+  return Boolean(getAccessToken()) && localStorage.getItem(LOGGED_IN_KEY) === 'true';
+}
 
-  if (Number.isInteger(fromUser) && fromUser > 0) {
-    return fromUser;
+export function getRememberMe() {
+  return localStorage.getItem(REMEMBER_ME_KEY) === 'true';
+}
+
+export function getAccessToken() {
+  return localStorage.getItem(ACCESS_TOKEN_KEY) || '';
+}
+
+export function getRefreshToken() {
+  return localStorage.getItem(REFRESH_TOKEN_KEY) || '';
+}
+
+export function getAuthHeaders() {
+  const accessToken = getAccessToken();
+  return accessToken
+    ? { Authorization: `Bearer ${accessToken}` }
+    : {};
+}
+
+export function persistAuthSession(authData, options = {}) {
+  const { rememberMe = false } = options;
+  const user = authData?.user || {};
+
+  localStorage.setItem(ACCESS_TOKEN_KEY, authData.accessToken || '');
+  localStorage.setItem(REFRESH_TOKEN_KEY, authData.refreshToken || '');
+  localStorage.setItem(LOGGED_IN_KEY, 'true');
+  localStorage.setItem(REMEMBER_ME_KEY, rememberMe ? 'true' : 'false');
+  localStorage.setItem(
+    CURRENT_USER_KEY,
+    JSON.stringify({
+      ...getCurrentUser(),
+      ...user,
+      type: user.role,
+    })
+  );
+
+  dispatchSessionEvent('authChanged', { loggedIn: true, user });
+}
+
+export function updateCurrentUser(fields) {
+  const updatedUser = {
+    ...getCurrentUser(),
+    ...fields,
+  };
+
+  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
+  dispatchSessionEvent('authChanged', { loggedIn: isLoggedIn(), user: updatedUser });
+  return updatedUser;
+}
+
+export function clearAuthSession() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(LOGGED_IN_KEY);
+  localStorage.removeItem(REMEMBER_ME_KEY);
+  localStorage.removeItem(CURRENT_USER_KEY);
+  dispatchSessionEvent('authChanged', { loggedIn: false });
+}
+
+export async function restoreAuthSession() {
+  const accessToken = getAccessToken();
+
+  if (!accessToken) {
+    return null;
   }
 
-  const fromEnv = Number(import.meta.env.VITE_DEV_USER_ID || 1);
-  return Number.isInteger(fromEnv) && fromEnv > 0 ? fromEnv : 1;
+  try {
+    const user = await fetchMe(accessToken);
+    updateCurrentUser({
+      ...user,
+      type: user.role,
+    });
+    return user;
+  } catch {
+    const refreshToken = getRefreshToken();
+
+    if (!refreshToken) {
+      clearAuthSession();
+      return null;
+    }
+
+    try {
+      const refreshed = await refreshTokenRequest(refreshToken);
+      const user = await fetchMe(refreshed.accessToken);
+      persistAuthSession(
+        {
+          ...refreshed,
+          user,
+        },
+        { rememberMe: getRememberMe() }
+      );
+      return user;
+    } catch {
+      clearAuthSession();
+      return null;
+    }
+  }
 }
 
 export function getLocalFavorites() {
@@ -33,7 +135,6 @@ export function getLocalFavorites() {
 }
 
 export function updateLocalFavorite(type, placeId, favorited) {
-  const currentUser = getCurrentUser();
   const favorites = getLocalFavorites();
   const targetId = String(placeId);
   const key = type === 'PUBLIC' ? 'publics' : 'stores';
@@ -42,29 +143,18 @@ export function updateLocalFavorite(type, placeId, favorited) {
     ? Array.from(new Set([...(favorites[key] || []), targetId]))
     : (favorites[key] || []).filter((id) => String(id) !== targetId);
 
-  const updatedUser = {
-    ...currentUser,
+  const updatedUser = updateCurrentUser({
     favorites: {
       ...favorites,
       [key]: nextValues,
     },
-  };
+  });
 
-  localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-
-  const users = JSON.parse(localStorage.getItem('users') || '[]');
-  if (Array.isArray(users) && currentUser?.id) {
-    const updatedUsers = users.map((user) => (user.id === currentUser.id ? updatedUser : user));
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-  }
-
-  window.dispatchEvent(new CustomEvent('favoritesChanged', {
-    detail: {
-      type,
-      placeId: targetId,
-      favorited,
-    },
-  }));
+  dispatchSessionEvent('favoritesChanged', {
+    type,
+    placeId: targetId,
+    favorited,
+  });
 
   return updatedUser;
 }

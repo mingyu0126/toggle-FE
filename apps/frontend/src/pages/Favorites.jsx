@@ -5,7 +5,7 @@ import { mockPublicInstitutions } from '../mocks/public.mock';
 import PlaceCard from '../components/common/PlaceCard';
 import { fetchFavoriteStores } from '../lib/favorites';
 import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
-import { getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
+import { getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn, updateCurrentUser } from '../lib/session';
 import styles from './Favorites.module.css';
 
 export default function Favorites() {
@@ -71,14 +71,7 @@ export default function Favorites() {
       [key]: [...(myMap[key] || []), value],
     };
 
-    const updatedUser = { ...latestUser, myMap: updatedMyMap };
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    if (Array.isArray(users) && latestUser?.id) {
-      const updatedUsers = users.map((user) => (user.id === latestUser.id ? updatedUser : user));
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
-    }
+    updateCurrentUser({ ...latestUser, myMap: updatedMyMap });
 
     alert('내 지도에 성공적으로 추가되었습니다.');
   };

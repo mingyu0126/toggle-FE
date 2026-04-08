@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -23,6 +23,7 @@ import PublicWeb from './pages/PublicWeb'; // 신규 데스크탑 공공기관 �
 import SignupWeb from './pages/SignupWeb'; // 신규 데스크탑 회원가입
 import AdminLoginWeb from './pages/AdminLoginWeb'; // 신규 데스크탑 관리자 로그인
 import AdminWeb from './pages/AdminWeb'; // 신규 데스크탑 관리자 페이지
+import { getCurrentUserRole, isLoggedIn, restoreAuthSession } from './lib/session';
 
 // 모바일 앱 형태를 유지할 페이지들을 감싸는 레이아웃 프레임
 function MobileFrame({ children }) {
@@ -33,7 +34,45 @@ function MobileFrame({ children }) {
   );
 }
 
+function ProtectedRoute({ children, redirectTo, roles }) {
+  if (!isLoggedIn()) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  if (roles?.length && !roles.includes(getCurrentUserRole())) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
 function App() {
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const bootstrapSession = async () => {
+      try {
+        await restoreAuthSession();
+      } finally {
+        if (isMounted) {
+          setIsBootstrapping(false);
+        }
+      }
+    };
+
+    bootstrapSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (isBootstrapping) {
+    return <div style={{ minHeight: '100vh', background: '#0f172a' }} />;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
@@ -43,8 +82,8 @@ function App() {
         <Route path="/mapweb" element={<HomeWeb />} />
         <Route path="/storeweb/:id" element={<StoreWeb />} />
         <Route path="/publicweb/:id" element={<PublicWeb />} />
-        <Route path="/favoritesweb" element={<FavoritesWeb />} />
-        <Route path="/my-mapweb" element={<MyMapWeb />} />
+        <Route path="/favoritesweb" element={<ProtectedRoute redirectTo="/loginweb"><FavoritesWeb /></ProtectedRoute>} />
+        <Route path="/my-mapweb" element={<ProtectedRoute redirectTo="/loginweb"><MyMapWeb /></ProtectedRoute>} />
         <Route path="/listweb" element={<ListWeb />} />
         <Route path="/signupweb" element={<SignupWeb />} />
         <Route path="/adminloginweb" element={<AdminLoginWeb />} />
@@ -61,11 +100,11 @@ function App() {
               <Route path="/list" element={<List />} />
               <Route path="/store/:id" element={<StoreDetail />} />
               <Route path="/public/:id" element={<PublicDetail />} />
-              <Route path="/favorites" element={<Favorites />} />
-              <Route path="/my-map" element={<MyMap />} />
+              <Route path="/favorites" element={<ProtectedRoute redirectTo="/login"><Favorites /></ProtectedRoute>} />
+              <Route path="/my-map" element={<ProtectedRoute redirectTo="/login"><MyMap /></ProtectedRoute>} />
               <Route path="/shared" element={<SharedMap />} />
               <Route path="/shared/:id" element={<SharedMap />} />
-              <Route path="/pos" element={<Pos />} />
+              <Route path="/pos" element={<ProtectedRoute redirectTo="/login" roles={['OWNER']}><Pos /></ProtectedRoute>} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
