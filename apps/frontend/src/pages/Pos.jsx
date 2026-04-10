@@ -8,6 +8,16 @@ import { clearAuthSession, getCurrentUser, getRefreshToken } from '../lib/sessio
 import { createOwnerStoreApplication, fetchMyOwnerStoreApplications, fetchMyOwnerStores, updateOwnerStoreStatus } from '../lib/owner';
 import styles from './Pos.module.css';
 
+function getApplicationStatusText(application) {
+  if (application.requestStatus === 'APPROVED') return '승인 완료';
+  if (application.requestStatus === 'REJECTED') return '반려됨';
+  if (application.businessVerificationStatus === 'AUTO_VERIFICATION_UNAVAILABLE') return '사업자 자동 검증 재시도 필요';
+  if (application.businessVerificationStatus === 'AUTO_VERIFICATION_FAILED') return '사업자 자동 검증 실패';
+  if (application.mapVerificationStatus === 'FAILED') return '카카오 주소 검증 실패';
+  if (application.businessVerificationStatus === 'AUTO_VERIFIED' && application.mapVerificationStatus === 'VERIFIED') return '관리자 승인 대기';
+  return '검토중';
+}
+
 export default function Pos() {
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
@@ -19,9 +29,12 @@ export default function Pos() {
   const [isSubmittingApplication, setIsSubmittingApplication] = useState(false);
   const [statusError, setStatusError] = useState('');
   const [applicationForm, setApplicationForm] = useState({
-    businessName: '',
+    storeName: '',
     businessNumber: '',
+    representativeName: '',
+    businessOpenDate: '',
     businessAddress: '',
+    businessPhone: '',
     businessLicenseFile: null,
   });
   const selectedStore = linkedStores.find((store) => store.storeId === selectedStoreId) || linkedStores[0] || null;
@@ -188,9 +201,12 @@ export default function Pos() {
       setLinkedStores(stores);
       setApplications(myApplications);
       setApplicationForm({
-        businessName: '',
+        storeName: '',
         businessNumber: '',
+        representativeName: '',
+        businessOpenDate: '',
         businessAddress: '',
+        businessPhone: '',
         businessLicenseFile: null,
       });
       alert('매장 등록 신청이 접수되었습니다.');
@@ -276,11 +292,14 @@ export default function Pos() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}><List size={20} /> 매장 등록 신청</h2>
           <form className={styles.settingsPanel} onSubmit={handleSubmitApplication} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+              대표자명, 개업일자, 실영업주소, 실영업 전화번호까지 입력해야 관리자 검증과 최종 승인이 가능합니다.
+            </p>
             <input
               className={styles.timeInput}
               placeholder="상호명"
-              value={applicationForm.businessName}
-              onChange={(e) => handleChangeApplicationField('businessName', e.target.value)}
+              value={applicationForm.storeName}
+              onChange={(e) => handleChangeApplicationField('storeName', e.target.value)}
               required
             />
             <input
@@ -292,9 +311,33 @@ export default function Pos() {
             />
             <input
               className={styles.timeInput}
-              placeholder="사업자 등록 주소"
+              placeholder="대표자명"
+              value={applicationForm.representativeName}
+              onChange={(e) => handleChangeApplicationField('representativeName', e.target.value)}
+              required
+            />
+            <input
+              className={styles.timeInput}
+              type="date"
+              value={applicationForm.businessOpenDate}
+              onChange={(e) => handleChangeApplicationField('businessOpenDate', e.target.value)}
+              required
+            />
+            <input
+              className={styles.timeInput}
+              placeholder="실영업주소"
               value={applicationForm.businessAddress}
               onChange={(e) => handleChangeApplicationField('businessAddress', e.target.value)}
+              required
+            />
+            <input
+              className={styles.timeInput}
+              placeholder="실영업 전화번호"
+              value={applicationForm.businessPhone}
+              onChange={(e) => handleChangeApplicationField('businessPhone', e.target.value)}
+              inputMode="tel"
+              pattern="^[0-9+()\\-\\s]{7,30}$"
+              title="전화번호 형식으로 입력해 주세요."
               required
             />
             <input
@@ -308,6 +351,31 @@ export default function Pos() {
               {isSubmittingApplication ? '신청 중...' : '매장 등록 신청하기'}
             </button>
           </form>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}><List size={20} /> 내 신청 현황</h2>
+          <div className={styles.settingsPanel}>
+            {applications.length === 0 ? (
+              <p style={{ margin: 0, color: 'var(--color-text-secondary)' }}>아직 제출한 신청이 없습니다.</p>
+            ) : (
+              <div className={styles.applicationList}>
+                {applications.map((application) => (
+                  <article key={application.applicationId} className={styles.applicationCard}>
+                    <div className={styles.applicationTopRow}>
+                      <strong>{application.storeName}</strong>
+                      <span className={styles.applicationBadge}>{getApplicationStatusText(application)}</span>
+                    </div>
+                    <div className={styles.applicationMetaRow}>사업자번호 {application.businessNumber} · {application.businessAddressRaw}</div>
+                    <div className={styles.applicationMetaRow}>사업자 검증 {application.businessVerificationStatus} · 지도 검증 {application.mapVerificationStatus}</div>
+                    {application.rejectReason && (
+                      <div className={styles.applicationErrorText}>반려 사유: {application.rejectReason}</div>
+                    )}
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
         <section className={styles.section}>
