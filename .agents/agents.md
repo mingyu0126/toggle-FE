@@ -202,6 +202,8 @@ During and after meaningful work sessions:
    - files or areas changed
    - blockers or decisions
    - next recommended actions
+3. do this in the same session before finishing the turn, do not defer the log update
+4. if the work changed product direction, API behavior, QA scope, or operating assumptions, also update the relevant file under `handoff/`
 
 During QA, verification, or review sessions:
 
@@ -210,6 +212,7 @@ During QA, verification, or review sessions:
    - what was verified
    - what issues were found
    - what was fixed or remains open
+3. if fixes were made, update the corresponding handoff artifact in the same session when the QA changes expected behavior, setup, or test steps
 
 Use `handoff/` for role-based deliverables that should survive across conversations.
 
@@ -233,10 +236,13 @@ For implementation work involving frameworks, libraries, or platform APIs:
 - NEVER finalize entity design before ERD/schema review when schema changed
 - NEVER implement without considering permissions
 - NEVER finish QA/review work without writing the result to `handoff/qa` when the work produced meaningful findings or validation coverage
+- NEVER end a substantive turn with code, QA, or planning changes without updating `daily-log/YYYY-MM-DD.md` in that same turn
+- NEVER leave `handoff/` stale when product behavior, admin flow, QA scope, or operating procedure changed in the session
 - ALWAYS validate role boundaries
 - ALWAYS ensure consistency across map/list/detail
 - ALWAYS leave an updated `daily-log` entry after substantive implementation, refactoring, investigation, or planning work
 - ALWAYS leave an updated `daily-log` entry after substantive QA, review, or verification work
+- ALWAYS treat `daily-log` and relevant `handoff` artifacts as part of the definition of done
 
 ---
 
@@ -252,11 +258,13 @@ When handling a request:
 6. Use defined skills
 7. Save outputs to correct location
 8. Update `daily-log` if the session produced meaningful progress, decisions, or next steps
+9. Update relevant `handoff` artifacts in the same session when requirements, QA coverage, or operating flow changed
 
 If the request includes QA, review, validation, or bug-finding:
 
 1. create or update the corresponding artifact under `handoff/qa`
 2. record findings and validation outcome in `daily-log`
+3. do not treat the work as complete until both files are updated
 
 ---
 

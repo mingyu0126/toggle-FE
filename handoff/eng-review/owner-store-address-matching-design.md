@@ -1,307 +1,573 @@
-# Eng Review: Multi-Store Owner Registration and Store Linking
+# Eng Review: Owner Store Registration, Verification, And Approval
 
-## 1. Scope
-- 점주 회원가입을 계정 생성과 사업자/매장 등록 신청으로 분리한다.
-- 로그인한 점주가 여러 개의 사업자/매장 신청을 만들 수 있게 한다.
-- 관리자 승인 후 하나의 점주 계정에 여러 매장을 연결할 수 있게 한다.
-- POS는 선택한 연결 매장 기준으로 상태를 갱신하고, 사용자 화면은 서버 상태를 조회한다.
+## 1. Requirement Interpretation
+- 매장 등록은 `신청`과 `승인 완료`를 분리해야 한다.
+- 관리자 최종 승인은 아래 두 조건을 모두 만족해야 한다.
+  - 사업자 검증 완료
+  - 카카오맵 검증 완료
+- 사업자 검증은 지역과 무관하게 국세청 API 자동 검증을 기본으로 한다.
+- 수동 검증은 자동 검증 실패나 외부 장애를 보정하는 예외 처리 수단이다.
+- 카카오맵 검증은 검색 결과를 찾는 것만으로 끝나지 않는다.
+  - 최적 후보를 확정
+  - `stores` 저장 완료
+  - 필요한 외부 원본 데이터 저장
+  - 여기까지 가야 검증 완료다.
 
-## 2. Problem Framing
-- 기존 구조는 점주 회원가입 단계에서 사업자 정보까지 받아서 `계정 생성`과 `매장 권한 신청`이 결합돼 있다.
-- 이 방식은 다매장 점주 요구사항과 충돌한다.
-- 해결해야 할 핵심은 "점주라는 사람 계정"과 "그 계정이 관리하는 매장 권한"을 분리하는 것이다.
+## 2. Approval Flow
 
-## 3. Design Principles
-- 계정과 매장 권한은 다른 lifecycle로 관리한다.
-- 한 점주는 여러 신청과 여러 매장을 가질 수 있어야 한다.
-- 한 매장은 1차 정책상 하나의 대표 점주에게만 연결한다.
-- 잘못된 자동 연결보다 미연결이 낫다.
-- POS write 권한은 `role=OWNER`만으로 주지 않고, `owner-store-link` 존재 여부로 판정한다.
+### Step 1. Owner 신청 생성
+- OWNER가 신청서를 제출한다.
+- `store_registration_requests`를 생성한다.
+- 초기 상태
+  - request status: `PENDING`
+  - business verification status: `NOT_STARTED`
+  - map verification status: `NOT_STARTED`
 
-## 4. Target State Architecture
+### Step 2. 사업자 자동 검증
+- 주소 지역과 무관하게 `AUTO_VERIFICATION_PENDING`
+- 국세청 API 호출
+- 일치하면 `AUTO_VERIFIED`
+- 불일치 또는 정상 실패면 `AUTO_VERIFICATION_FAILED`
+- 외부 장애/미설정/타임아웃이면 `AUTO_VERIFICATION_UNAVAILABLE`
+- 필요 시 관리자 수동 검증으로 보정한다.
 
-### 4.1 Auth
-- `users`
-  - `USER`, `OWNER`, `ADMIN`
-- 점주도 일반 회원가입처럼 계정 생성
-- 사업자 관련 정보는 auth 스키마에서 제거
+### Step 3. 카카오맵 검증
+- 점주가 입력한 실영업주소를 그대로 조회 기준으로 사용한다.
+- `매장명 + 실영업주소`로 1차 검색
+- `실영업주소` 단독으로 2차 검색
+- exact address match가 없으면 `FAILED`
+- exact address match가 2건 이상이면 자동 확정하지 않고 `FAILED`
+- exact address match가 정확히 1건일 때만 `stores`에 upsert
+- 성공 시 `VERIFIED`
 
-### 4.2 Owner Store Application
-- 로그인한 점주가 `owner_store_applications`를 생성
-- 각 신청은 하나의 사업자/매장 등록 시도
-- 한 점주 계정은 여러 신청 보유 가능
+### Step 4. 관리자 검토
+- 관리자는 신청 상세에서 아래를 확인한다.
+  - 신청 원문
+  - 사업자 검증 결과
+  - 카카오맵 검증 결과
+  - 저장된 store 요약
+  - 검증 이력
+- 관리자는 수동 사업자 검증이 필요한 건을 검증 처리한다.
 
-### 4.3 Owner Store Link
-- 승인 완료 후 `owner_store_links`에 점주-매장 연결 생성
-- 한 점주는 여러 `link`를 가질 수 있음
-- 한 매장은 하나의 점주에만 연결
+### Step 5. 관리자 최종 승인
+- 승인 전 검증 조건
+  - business verification status in (`AUTO_VERIFIED`, `MANUAL_VERIFIED`)
+  - map verification status = `VERIFIED`
+- 조건 충족 시에만 `APPROVED`
+- 승인 시 `owner_store_links` 생성 또는 최종 활성화
+- 반려 시 `REJECTED`
 
-## 5. Data Model
+## 2.1 Scenario Matrix
 
-### 5.1 users
-- 유지
-- 점주 회원가입은 아래 정도만 받음
-  - `email`
-  - `password`
-  - `nickname`
-  - `role=OWNER`
-  - `status=ACTIVE`
+### Scenario A. 자동 검증 성공 + 지도 검증 성공
+- 입력
+  - 사업자등록번호 / 대표자명 / 개업일자 정상
+- 흐름
+  - `NOT_STARTED -> AUTO_VERIFICATION_PENDING -> AUTO_VERIFIED`
+  - `NOT_STARTED -> SEARCH_PENDING -> VERIFIED`
+  - 승인 API 호출 가능
+- 기대 결과
+  - request status: `APPROVED`
+  - `verified_store_id` 설정
+  - `owner_store_links` 생성
 
-### 5.2 owner_store_applications
-- 신규 또는 기존 `owner_applications` 리네이밍 권장
-- 컬럼 제안
+### Scenario B. 자동 검증 실패
+- 입력
+  - 국세청 응답 불일치
+- 흐름
+  - `NOT_STARTED -> AUTO_VERIFICATION_PENDING -> AUTO_VERIFICATION_FAILED`
+  - map verification은 수행될 수 있지만 승인 조건 미달
+- 기대 결과
+  - request status: `UNDER_REVIEW`
+  - 승인 API는 `409` 또는 `400`으로 차단
+
+### Scenario C. 자동 검증 불가 + 수동 검증 성공 + 지도 검증 성공
+- 입력
+  - 국세청 장애 또는 설정 누락
+- 흐름
+  - `NOT_STARTED -> AUTO_VERIFICATION_PENDING -> AUTO_VERIFICATION_UNAVAILABLE -> MANUAL_VERIFIED`
+  - `NOT_STARTED -> SEARCH_PENDING -> VERIFIED`
+  - 승인 API 호출 가능
+- 기대 결과
+  - request status: `APPROVED`
+
+### Scenario D. 지도 검증 실패
+- 입력
+  - 사업자 검증 성공 또는 수동 검증 완료
+  - 카카오 검색 결과 없음 또는 저장 실패
+- 흐름
+  - `NOT_STARTED -> SEARCH_PENDING -> FAILED`
+- 기대 결과
+  - 승인 불가
+  - request status: `UNDER_REVIEW`
+
+### Scenario E. 승인 전 수정
+- 입력
+  - OWNER가 `PENDING`, `UNDER_REVIEW` 신청 수정
+- 흐름
+  - 최신 business verification status 초기화
+  - 최신 map verification status 초기화
+  - 기존 history는 보존
+- 기대 결과
+  - 재검증 필수
+
+### Scenario F. 관리자 반려
+- 입력
+  - 관리자가 부적합 판단
+- 흐름
+  - request status -> `REJECTED`
+  - reject reason 저장
+  - admin review log 저장
+- 기대 결과
+  - OWNER는 반려 사유 확인 가능
+
+## 3. State Design
+
+### 3.1 StoreRegistrationRequestStatus
+- `PENDING`
+  - 신청 직후
+- `UNDER_REVIEW`
+  - 검증이 진행 중이거나 관리자 검토 중
+- `APPROVED`
+  - 최종 승인 완료
+- `REJECTED`
+  - 최종 반려
+
+### 3.2 BusinessVerificationStatus
+- `NOT_STARTED`
+- `AUTO_VERIFICATION_PENDING`
+- `AUTO_VERIFIED`
+- `AUTO_VERIFICATION_UNAVAILABLE`
+- `AUTO_VERIFICATION_FAILED`
+- `MANUAL_VERIFIED`
+- `MANUAL_VERIFICATION_FAILED`
+
+### 3.3 MapVerificationStatus
+- `NOT_STARTED`
+- `SEARCH_PENDING`
+- `VERIFIED`
+- `FAILED`
+
+### 3.4 Recommendation
+- 등록 요청 상태와 검증 상태를 분리하는 현재 방향이 맞다.
+- 승인 가능 여부는 단일 boolean 필드보다 상태 조합으로 계산하는 것이 낫다.
+- 예시
+  - `canApprove = businessVerified && mapVerified && requestStatus != REJECTED`
+
+## 4. Entity / ERD Draft
+
+### 4.1 users
+- 기존 유지
+- `id`
+- `email`
+- `password`
+- `nickname`
+- `role`
+- `status`
+
+### 4.2 store_registration_requests
+- 점주의 매장 등록 신청 본체
+- 필드
   - `id`
   - `owner_user_id`
-  - `business_name`
-  - `business_number`
-  - `business_address_raw`
-  - `business_address_normalized`
+  - `store_name`
+  - `business_registration_number`
+  - `representative_name`
+  - `business_open_date`
+  - `address_raw`
+  - `address_normalized`
+  - `is_seoul_address`
+  - `request_status`
+  - `business_verification_status`
+  - `map_verification_status`
   - `business_license_stored_path`
   - `business_license_original_name`
   - `business_license_content_type`
-  - `review_status`
-  - `reviewed_at`
-  - `reject_reason`
+  - `verified_store_id` nullable
+  - `final_reviewed_by_admin_id` nullable
+  - `final_reviewed_at` nullable
+  - `reject_reason` nullable
   - `created_at`
   - `updated_at`
-- 제약
-  - `owner_user_id` unique 제거
-  - 필요시 `business_number + owner_user_id` 중복 제한 검토
+- 책임
+  - 최종 신청 상태와 현재 검증 상태를 들고 있는 aggregate root
 
-### 5.3 stores
-- 유지
-- 추가 또는 유지 필드
-  - `address_normalized`
-  - `live_business_status`
-  - `live_status_updated_at`
-  - `live_status_source`
-
-### 5.4 owner_store_links
-- 컬럼
+### 4.3 business_verification_histories
+- 사업자 검증 이력 테이블
+- 필드
   - `id`
-  - `owner_user_id`
-  - `store_id`
-  - `application_id`
-  - `match_status`
-  - `match_score`
-  - `matched_by`
-  - `match_reason`
-  - `created_at`
-  - `updated_at`
-- 제약
-  - `unique(store_id)`
-  - `owner_user_id` unique 제거
-
-### 5.5 store_status_history
-- 컬럼
-  - `id`
-  - `store_id`
-  - `owner_user_id`
+  - `request_id`
+  - `verification_type` (`AUTO_NTS`, `MANUAL_ADMIN`)
   - `status`
-  - `comment`
-  - `changed_at`
+  - `request_payload_json`
+  - `response_payload_json`
+  - `matched_business_number`
+  - `matched_representative_name`
+  - `matched_open_date`
+  - `matched_address`
+  - `failure_code`
+  - `failure_message`
+  - `verified_by_admin_id` nullable
+  - `verified_at`
+  - `created_at`
+- 책임
+  - 자동/수동 검증 이력과 감사 로그
 
-## 6. Enum Design
+### 4.4 map_verification_histories
+- 카카오맵 검증 이력 테이블
+- 필드
+  - `id`
+  - `request_id`
+  - `query_text`
+  - `query_type` (`NAME_AND_ADDRESS`, `ADDRESS_ONLY`)
+  - `status`
+  - `candidate_count`
+  - `selected_external_place_id` nullable
+  - `selected_place_name` nullable
+  - `selected_road_address` nullable
+  - `selected_jibun_address` nullable
+  - `selected_phone` nullable
+  - `selected_category_name` nullable
+  - `selected_latitude` nullable
+  - `selected_longitude` nullable
+  - `response_payload_json`
+  - `linked_store_id` nullable
+  - `failure_code`
+  - `failure_message`
+  - `verified_at`
+  - `created_at`
+- 책임
+  - 카카오 검색/선택/저장 결과 추적
 
-### OwnerStoreApplicationReviewStatus
-- `PENDING`
-- `APPROVED`
-- `REJECTED`
+### 4.5 stores
+- 실제 검증된 장소 데이터 저장소
+- 필드
+  - `id`
+  - `external_source`
+  - `external_place_id`
+  - `name`
+  - `road_address`
+  - `jibun_address`
+  - `address_normalized`
+  - `latitude`
+  - `longitude`
+  - `phone`
+  - `category_name`
+  - `verified_at`
+  - `raw_source_payload_json`
+  - `live_business_status`
+  - `live_status_source`
+  - `created_at`
+  - `updated_at`
 
-### OwnerStoreMatchStatus
-- `PENDING_REVIEW`
-- `AUTO_MATCHED`
-- `MANUALLY_CONFIRMED`
-- `REJECTED`
+### 4.6 owner_store_links
+- 승인된 점주와 store의 최종 연결
+- 필드
+  - `id`
+  - `owner_user_id`
+  - `store_id`
+  - `request_id`
+  - `link_status` (`ACTIVE`, `REVOKED`)
+  - `approved_by_admin_id`
+  - `approved_at`
+  - `created_at`
+  - `updated_at`
 
-### LiveStatusSource
-- `OWNER_POS`
-- `SYSTEM`
-- `ADMIN`
+### 4.7 admin_review_logs
+- 관리자 액션 로그
+- 필드
+  - `id`
+  - `request_id`
+  - `admin_user_id`
+  - `action_type` (`MARK_MANUAL_VERIFIED`, `MARK_MANUAL_FAILED`, `APPROVE`, `REJECT`)
+  - `reason`
+  - `metadata_json`
+  - `created_at`
 
-## 7. Address Normalization Strategy
+## 5. API Draft
 
-### Phase 1 Rules
-- trim
-- lowercase
-- `특별시 -> 시`, `광역시 -> 시`, `특별자치시 -> 시`, `특별자치도 -> 도`
-- 특수문자 공백 치환
-- 연속 공백 축소
-- `층`, `호` 제거
-
-### Why
-- 외부 주소 표준화 서비스 없이도 흔한 표기 차이를 흡수할 수 있다.
-- 다만 자동 연결은 보수적으로만 허용한다.
-
-## 8. Matching Strategy
-
-### 8.1 Candidate Search
-- `stores.address_normalized` 기준으로 prefix/contains 검색
-- 필요시 상호명 기반 보조 검색
-
-### 8.2 Score Model
-- 주소 exact normalized match: `+70`
-- 주소 partial match: `+50`
-- 상호명/매장명 유사: `+20`
-- 전화번호 일치: `+20`
-- 좌표 근접: `+10`
-
-### 8.3 Decision Rule
-- `score >= 85`
-  - 자동 추천 가능
-- `60 <= score < 85`
-  - 검토 필요
-- `< 60`
-  - 미연결
-
-### 8.4 Safety Rule
-- 이미 다른 점주와 연결된 매장은 자동/수동 연결 제한
-- 후보 점수가 비슷하면 자동 확정 금지
-
-## 9. API Design
-
-### 9.1 Owner Signup
-- `POST /api/v1/auth/signup`
-- `OWNER`도 일반 계정 생성처럼 처리
+### 5.1 OWNER 매장 등록 신청
+- `POST /api/v1/owner/store-registration-requests`
+- 권한: `OWNER`
+- 요청
 ```json
 {
-  "email": "owner@toggle.com",
-  "password": "password123!",
-  "nickname": "토글 운영자",
-  "role": "OWNER"
+  "storeName": "토글 대치점",
+  "businessRegistrationNumber": "1234567890",
+  "representativeName": "홍길동",
+  "businessOpenDate": "2021-03-15",
+  "address": "서울특별시 강남구 테헤란로 123",
+  "businessLicenseFileId": "temp-file-id"
+}
+```
+- 응답
+```json
+{
+  "requestId": 101,
+  "requestStatus": "PENDING",
+  "businessVerificationStatus": "NOT_STARTED",
+  "mapVerificationStatus": "NOT_STARTED"
 }
 ```
 
-### 9.2 Create Store Application
-- `POST /api/v1/owner/store-applications`
-- multipart
+### 5.2 OWNER 신청 목록 조회
+- `GET /api/v1/owner/store-registration-requests`
+- 권한: `OWNER`
+
+### 5.3 OWNER 신청 수정
+- `PATCH /api/v1/owner/store-registration-requests/{requestId}`
+- 권한: `OWNER`
+- 제약
+  - `APPROVED`, `REJECTED` 이후 수정 불가
+  - 검증 이력이 있으면 재검증 상태 초기화 필요
+
+### 5.4 ADMIN 신청 목록 조회
+- `GET /api/v1/admin/store-registration-requests`
+- 권한: `ADMIN`
+- 필터
+  - `requestStatus`
+  - `businessVerificationStatus`
+  - `mapVerificationStatus`
+
+### 5.5 ADMIN 신청 상세 조회
+- `GET /api/v1/admin/store-registration-requests/{requestId}`
+- 권한: `ADMIN`
+- 응답 포함
+  - 신청 원문
+  - 사업자 검증 최신 결과
+  - 카카오맵 검증 최신 결과
+  - 관리자 액션 로그
+
+### 5.6 시스템/관리자 사업자 검증 실행
+- `POST /api/v1/admin/store-registration-requests/{requestId}/business-verifications/execute`
+- 권한: `ADMIN`
+- 동작
+  - 전국 주소에 대해 국세청 자동 검증 재실행
+
+### 5.7 ADMIN 수동 사업자 검증 처리
+- `POST /api/v1/admin/store-registration-requests/{requestId}/business-verifications/manual`
+- 권한: `ADMIN`
+- 요청
 ```json
 {
-  "businessName": "토글가게 대치점",
-  "businessNumber": "123-45-67890",
-  "businessAddress": "서울특별시 강남구 테헤란로 123 2층"
+  "verified": true,
+  "reason": "사업자등록정보 직접 확인 완료"
 }
 ```
 
-### 9.3 List My Store Applications
-- `GET /api/v1/owner/store-applications`
-
-### 9.4 List My Linked Stores
-- `GET /api/v1/owner/stores`
-
-### 9.5 Match Candidate Query
-- `GET /api/v1/admin/owner-store-applications/{applicationId}/match-candidates`
-
-### 9.6 Confirm Match + Approve
-- `POST /api/v1/admin/owner-store-applications/{applicationId}/approve`
+### 5.8 카카오맵 검증 실행
+- `POST /api/v1/admin/store-registration-requests/{requestId}/map-verifications/execute`
+- 권한: `ADMIN`
+- 요청
 ```json
 {
-  "storeId": 21
+  "forceRefresh": true
 }
 ```
-- approve 시 application review와 owner-store-link 생성까지 같이 처리하는 것이 운영상 단순하다.
 
-### 9.7 Reject Application
-- `POST /api/v1/admin/owner-store-applications/{applicationId}/reject`
-
-### 9.8 POS Status Update
-- `POST /api/v1/owner/stores/{storeId}/status`
+### 5.9 관리자 최종 승인
+- `POST /api/v1/admin/store-registration-requests/{requestId}/approve`
+- 권한: `ADMIN`
+- 요청
 ```json
 {
-  "status": "OPEN",
-  "comment": "정상 영업 중입니다."
+  "reason": "사업자 검증 및 위치 검증 완료"
 }
 ```
-- 서버는 로그인 점주가 해당 `storeId`와 연결되어 있는지 검증해야 한다.
+- 성공 조건
+  - business verification status in (`AUTO_VERIFIED`, `MANUAL_VERIFIED`)
+  - map verification status = `VERIFIED`
 
-## 10. Backend Service Design
+### 5.10 관리자 반려
+- `POST /api/v1/admin/store-registration-requests/{requestId}/reject`
+- 권한: `ADMIN`
+- 요청
+```json
+{
+  "reason": "사업자 정보 불일치"
+}
+```
 
-### 10.1 AuthService
-- 점주 회원가입 시 사업자 검증 상태에 의존하지 않음
-- 점주도 활성 계정으로 바로 로그인 가능
+## 6. Service / Class Structure
 
-### 10.2 OwnerStoreApplicationService
-- `createApplication(ownerUserId, request, file)`
-- `listMyApplications(ownerUserId)`
-- `listAdminApplications()`
-- `approve(applicationId, storeId, adminId)`
-- `reject(applicationId, reason, adminId)`
+### 6.1 StoreRegistrationService
+- 신청 생성
+- 신청 수정
+- OWNER 본인 신청 조회
+- 신청 수정 시 검증 상태 초기화 orchestration
 
-### 10.3 OwnerStoreMatchingService
-- `findCandidates(applicationId)`
-- `score(application, store)`
+### 6.2 BusinessVerificationService
+- 전국 자동 검증 실행
+- 자동 검증 불가 여부 판단
+- 사업자 검증 상태 업데이트
+- 수동 검증 가능 여부 판단
 
-### 10.4 OwnerStoreLinkService
-- `findLinkedStores(ownerUserId)`
-- `isLinked(ownerUserId, storeId)`
-- `createLink(application, store, adminId)`
+### 6.3 NationalTaxServiceClient
+- 국세청 API HTTP 호출
+- 요청 DTO/응답 DTO 매핑
+- 타임아웃/실패/응답 코드 처리
+- 공공데이터포털 `국세청_사업자등록정보 진위확인 및 상태조회 서비스`를 기준 구현 대상으로 삼는다.
 
-### 10.5 StoreLiveStatusService
-- `updateOwnerLiveStatus(ownerUserId, storeId, status, comment)`
-- link 검증 후 `stores.live_business_status`와 history 갱신
+### 6.4 KakaoMapVerificationService
+- 카카오 검색 전략 실행
+- 후보 스코어링
+- 최적 후보 선정
+- `stores` 저장
+- map verification history 저장
 
-## 11. Read Path Changes
+### 6.5 StoreResolutionService
+- 카카오 결과를 `stores`에 upsert
+- 외부 place id 기반 중복 제거
 
-### 11.1 Favorites / Store Detail / Home
-- 서버 `live_business_status`를 우선 노출
-- 현재 local 상태 fallback은 제거 방향
+### 6.6 AdminStoreApprovalService
+- 최종 승인 가능 여부 검증
+- 승인 시 `owner_store_links` 생성
+- 반려 처리
+- 관리자 액션 로그 생성
 
-### 11.2 POS
-- `내 매장 목록` 조회 필요
-- 현재 선택한 매장 기준으로 상태 변경
-- 연결된 매장이 없으면 신청 유도
+### 6.7 AdminVerificationService
+- 수동 사업자 검증 처리
+- 검증 로그 기록
 
-### 11.3 Owner Dashboard
-- `내 신청 현황`
-- `내 매장 목록`
-- `새 매장 등록 신청`
+## 7. External API Integration
 
-## 12. Migration Plan
+### 7.1 국세청 API
+- 사용 API
+  - 공공데이터포털 `국세청_사업자등록정보 진위확인 및 상태조회 서비스`
+- 호출 대상
+  - 전국 주소
+- 입력 파라미터
+  - 사업자등록번호
+  - 대표자명
+  - 개업일자
+  - 주소
+- 성공 기준
+  - 국세청 응답과 신청 정보가 내부 비교 규칙상 일치
+- 실패 기준
+  - 불일치
+  - API business failure
+  - malformed response
+- 운영 전략
+  - timeout 짧게 설정
+  - 1회 짧은 재시도만 허용
+  - 결과/응답 요약은 history에 저장
+  - raw 민감정보 로그는 마스킹
 
-### Step 1
-- 점주 회원가입에서 사업자 등록 입력 제거
-- 점주 계정을 즉시 생성 가능한 모델로 전환
+### 7.2 카카오맵 API
+- 검색 전략
+  - `매장명 + 실영업주소`
+  - 결과가 약하면 `실영업주소`
+- 성공 기준
+  - 정규화한 실영업주소 exact match
+  - exact match가 정확히 1건으로 확정
+  - `stores` 저장 성공
+- 보조 기준
+  - 같은 exact address 결과가 여러 건이면 전화번호 일치 여부로만 단일 결과 확정을 시도
+- 저장 정책
+  - 확정된 exact match 1건만 `stores`에 upsert
+  - 외부 식별자와 raw payload 일부 저장
+- 실패 기준
+  - exact address 결과 없음
+  - exact address 결과 다수
+  - 저장 실패
 
-### Step 2
-- `owner_applications`를 `owner_store_applications` 개념으로 재정의
-- `owner_user_id` unique 제거
+## 8. Exception Strategy
 
-### Step 3
-- `owner_store_links.owner_user_id` unique 제거
-- `application_id` 참조 추가
+### 잘못된 주소 입력
+- 신청 생성 시 기본 주소 형식 검증
+- 지도 검증 실패 시 `FAILED`
+- OWNER 수정 후 재검증 유도
 
-### Step 4
-- 점주 대시보드용 신청/매장 목록 API 추가
+### 국세청 성공, 카카오 실패
+- 승인 불가
+- request status는 `UNDER_REVIEW`
+- map verification status는 `FAILED`
 
-### Step 5
-- POS를 단일 점주 매장 모델에서 다매장 선택 모델로 전환
+### 카카오 성공, 사업자 불일치
+- 승인 불가
+- business verification status는 failed 유지
 
-### Step 6
-- 사용자-facing read path를 서버 live status 우선으로 정리
+### 동일 매장 중복 등록
+- `stores.external_source + external_place_id` unique
+- `APPROVED/UNDER_REVIEW` 상태의 동일 사업자번호+주소 조합 중복 제한 검토
 
-## 13. Edge Cases
-- 한 사업자 번호로 여러 지점 신청
-- 본사 주소와 지점 주소 불일치
-- 동일 주소 내 복수 매장
-- 이미 연결된 매장에 다른 점주 신청
-- 점주는 로그인 가능하지만 연결 매장이 없어 POS 조작 불가
+### 승인 전 수정
+- `PENDING`, `UNDER_REVIEW`까지만 허용
+- 수정 시 기존 검증 이력은 남기되 최신 상태는 재검증 필요로 전환
 
-## 14. Risks
-- 현재 구현 일부가 `점주 승인 전 로그인 불가` 전제에 맞춰져 있어 리팩터링 범위가 넓다.
-- 프론트 POS가 아직 단일 매장 모델에 가깝다.
-- 기존 테스트/시드 데이터도 새 lifecycle에 맞게 다시 정리해야 한다.
+### 승인 후 정합성 문제
+- 관리자 revoke 기능 별도 고려
+- `owner_store_links.link_status`로 soft revoke 가능하게 설계
 
-## 15. Recommendation
-- 지금은 계정 생성과 매장 신청을 분리하는 것이 맞다.
-- 백엔드는 `owner_store_applications`와 `owner_store_links`를 중심으로 다시 잡고, POS 권한은 링크 기반으로 전환한다.
-- 승인 정책은 "점주 계정 승인"이 아니라 "매장 운영 권한 승인"으로 재정의한다.
+### 외부 API 장애
+- business/map verification history에 장애 코드 기록
+- request status는 `UNDER_REVIEW`
+- 서울 자동 검증은 사업자 불일치와 외부 장애를 구분해야 한다.
+- 국세청 키 누락/타임아웃/5xx는 `AUTO_VERIFICATION_UNAVAILABLE`로 저장하고 관리자 재실행 대상으로 남긴다.
+- 운영자 재실행 API 제공
 
-## 16. Next Build Order
-1. PRD/API 문서를 새 lifecycle 기준으로 확정
-2. 점주 signup 간소화
-3. `owner_store_applications` 모델로 전환
-4. `owner_store_links` 다매장 허용으로 변경
-5. 점주 대시보드 신청 API 추가
-6. 관리자 승인/매칭 API 재정의
-7. POS 다매장 선택 + 상태 업데이트 구현
-8. 사용자 read path 서버 상태 우선 정리
+## 9. Recommended Implementation Order
+1. enum / entity / repository 정리
+2. 신청 생성 API
+3. 서울 판별 + 사업자 검증 상태 모델링
+4. 국세청 client + auto verification history 저장
+5. 카카오 client + store resolution + map verification history 저장
+6. 관리자 수동 사업자 검증 API
+7. 관리자 승인/반려 API
+8. 관리자 상세 조회 API
+9. OWNER 수정 시 재검증 흐름
+10. QA, 시드, 운영 로그 보강
+
+## 10. Package Structure Example
+```text
+com.toggle
+  controller
+    OwnerStoreRegistrationController
+    AdminStoreRegistrationController
+  dto
+    storeapproval
+      CreateStoreRegistrationRequest.java
+      UpdateStoreRegistrationRequest.java
+      StoreRegistrationResponse.java
+      AdminApproveStoreRequest.java
+      AdminRejectStoreRequest.java
+      ManualBusinessVerificationRequest.java
+      ExecuteMapVerificationRequest.java
+  entity
+    StoreRegistrationRequest.java
+    BusinessVerificationHistory.java
+    MapVerificationHistory.java
+    AdminReviewLog.java
+    Store.java
+    OwnerStoreLink.java
+  repository
+    StoreRegistrationRequestRepository.java
+    BusinessVerificationHistoryRepository.java
+    MapVerificationHistoryRepository.java
+    AdminReviewLogRepository.java
+  service
+    StoreRegistrationService.java
+    BusinessVerificationService.java
+    AdminVerificationService.java
+    KakaoMapVerificationService.java
+    StoreResolutionService.java
+    AdminStoreApprovalService.java
+  client
+    NationalTaxServiceClient.java
+    KakaoLocalClient.java
+```
+
+## 11. Why This Design
+- 신청 본체와 검증 이력을 분리해야 운영 추적이 된다.
+- 검증 상태를 세분화해야 자동 검증 성공/실패/불가와 수동 보정을 자연스럽게 표현할 수 있다.
+- 카카오 결과를 `stores`에 저장한 뒤 승인하는 구조여야 "검증 성공 = DB 저장 완료" 규칙을 만족한다.
+- 승인 API에서 상태 조합을 엄격히 검사해야 요구사항을 깨지 않는다.
+
+## 12. Additional Policy Decisions
+- 카카오 검증은 후보 선택 UI를 두지 않는다. 실영업주소 exact match 결과가 정확히 1건일 때만 성공이다.
+- 도로명주소와 지번주소를 모두 정규화해서 비교하되, 둘 중 하나라도 점주 입력 실영업주소와 정확히 일치해야 한다.
+- exact address가 2건 이상이면 전화번호가 일부 일치하더라도 자동 확정하지 않고 `FAILED`로 남긴다.
+- 점수 기반 후보 API는 정책과 어긋나므로 더 이상 노출하지 않는다.
+- 승인 요청은 검증 결과를 받는 API가 아니라, 관리자의 최종 확인을 기록하는 API로 본다. request field도 `adminConfirmed` 의미로 유지한다.
+- 전국 자동 검증 정책으로 통일됐으므로 `seoulAddress` 같은 지역 분기용 도메인 필드는 제거한다.
+- 개발 시드도 최신 운영 흐름과 같은 상태(`UNDER_REVIEW`, `AUTO_VERIFICATION_UNAVAILABLE`, `FAILED`)로 보여야 한다.
