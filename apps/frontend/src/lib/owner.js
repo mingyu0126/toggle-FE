@@ -1,16 +1,27 @@
 import { apiRequest } from './api';
 import { getAuthHeaders } from './session';
 
-export async function createOwnerStoreApplication({ businessName, businessNumber, businessAddress, businessLicenseFile }) {
+export async function createOwnerStoreApplication({
+  storeName,
+  businessNumber,
+  representativeName,
+  businessOpenDate,
+  businessAddress,
+  businessPhone,
+  businessLicenseFile,
+}) {
   const formData = new FormData();
   formData.append('request', new Blob([JSON.stringify({
-    businessName,
+    storeName,
     businessNumber,
+    representativeName,
+    businessOpenDate,
     businessAddress,
+    businessPhone,
   })], { type: 'application/json' }));
   formData.append('businessLicenseFile', businessLicenseFile);
 
-  return apiRequest('/api/v1/owner/store-applications', {
+  return apiRequest('/api/v1/owner/store-registration-requests', {
     method: 'POST',
     headers: getAuthHeaders(),
     body: formData,
@@ -18,7 +29,7 @@ export async function createOwnerStoreApplication({ businessName, businessNumber
 }
 
 export async function fetchMyOwnerStoreApplications() {
-  return apiRequest('/api/v1/owner/store-applications', {
+  return apiRequest('/api/v1/owner/store-registration-requests', {
     method: 'GET',
     headers: getAuthHeaders(),
   });

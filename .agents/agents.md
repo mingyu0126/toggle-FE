@@ -229,6 +229,9 @@ For implementation work involving frameworks, libraries, or platform APIs:
 
 ## 🚨 Global Rules
 
+- BACKEND configuration in `application.yml` MUST use direct fixed values, not `${...}` environment-variable placeholders
+- NEVER reintroduce backend env-var based config unless the user explicitly changes this policy
+- If backend config policy changes, update both `application.yml` and the relevant backend rule/handoff documents in the same session
 - NEVER skip PRD step for new features
 - NEVER design API without defined scope
 - NEVER start substantive implementation before checking relevant `handoff/` artifacts

@@ -39,6 +39,15 @@ trigger: always_on
 
 ---
 
+## ⚙️ BACKEND CONFIG POLICY
+
+- `application.yml` MUST use direct fixed values
+- DO NOT use `${...}` environment-variable placeholders in backend config
+- DO NOT move JWT, datasource, upload path, Kakao API, or National Tax API settings back to env vars unless the user explicitly asks to change this policy
+- When backend config values or policy change, update the relevant `handoff/` document and `daily-log` in the same session
+
+---
+
 ## 🔐 AUTHORIZATION RULES
 
 - Guest → read-only public access

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Store, ChevronRight, Navigation } from 'lucide-react';
 import { login } from '../lib/auth';
@@ -14,6 +14,10 @@ export default function LoginWeb() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setError('');
+  }, [loginType]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

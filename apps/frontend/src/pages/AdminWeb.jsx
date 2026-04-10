@@ -619,19 +619,19 @@ export default function AdminWeb() {
                       <p>지도 재검증을 실행하면 최신 주소 검증 결과가 여기에 표시됩니다.</p>
                     </div>
                   ) : (
-                    <div className={styles.candidateList}>
-                      <div className={styles.candidateItem}>
-                        <div className={styles.candidateMain}>
-                          <strong>{latestMapHistory.selectedPlaceName || '검증 실패'}</strong>
-                          <span>{latestMapHistory.selectedRoadAddress || latestMapHistory.failureMessage || '-'}</span>
-                          <span className={styles.candidateSub}>query: {latestMapHistory.queryText}</span>
-                        </div>
-                        <div className={styles.candidateScore}>
-                          <strong>{latestMapHistory.status === 'SUCCESS' ? '1건 확정' : '검증 실패'}</strong>
-                          <span>{latestMapHistory.failureMessage || 'exact_address_confirmed'}</span>
+                      <div className={styles.candidateList}>
+                        <div className={styles.candidateItem}>
+                          <div className={styles.candidateMain}>
+                            <strong>{latestMapHistory.selectedPlaceName || '검증 실패'}</strong>
+                            <span>{latestMapHistory.selectedRoadAddress || latestMapHistory.selectedJibunAddress || latestMapHistory.failureMessage || '-'}</span>
+                            <span className={styles.candidateSub}>query: {latestMapHistory.queryText}</span>
+                          </div>
+                          <div className={styles.candidateScore}>
+                            <strong>{latestMapHistory.status === 'SUCCESS' ? `${latestMapHistory.candidateCount || 1}건 중 1건 확정` : `검증 실패 (${latestMapHistory.candidateCount || 0}건)`}</strong>
+                            <span>{latestMapHistory.failureCode || latestMapHistory.failureMessage || 'exact_address_confirmed'}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
                   )}
                 </article>
 
@@ -646,7 +646,7 @@ export default function AdminWeb() {
                           <div key={`${history.verifiedAt}-${index}`} className={styles.historyItem}>
                             <strong>{history.verificationType}</strong>
                             <span>{history.status}</span>
-                            <span>{history.failureMessage || formatDateTime(history.verifiedAt)}</span>
+                            <span>{history.failureCode ? `${history.failureCode} · ${history.failureMessage || '-'}` : (history.failureMessage || formatDateTime(history.verifiedAt))}</span>
                           </div>
                         ))}
                       </div>
@@ -663,7 +663,11 @@ export default function AdminWeb() {
                           <div key={`${history.verifiedAt}-${index}`} className={styles.historyItem}>
                             <strong>{history.queryText}</strong>
                             <span>{history.status}</span>
-                            <span>{history.selectedPlaceName || history.failureMessage || formatDateTime(history.verifiedAt)}</span>
+                            <span>
+                              {history.selectedPlaceName
+                                ? `${history.selectedPlaceName} · ${history.selectedRoadAddress || history.selectedJibunAddress || '-'}`
+                                : `${history.failureCode || 'MAP_FAILED'} · ${history.failureMessage || formatDateTime(history.verifiedAt)}`}
+                            </span>
                           </div>
                         ))}
                       </div>

@@ -6,6 +6,7 @@
   - 사업자 검증 완료
   - 카카오맵 검증 완료
 - 사업자 검증은 지역과 무관하게 국세청 API 자동 검증을 기본으로 한다.
+- 국세청 자동 검증 요청값은 `사업자등록번호`, `대표자명`, `개업일자`만 사용한다.
 - 수동 검증은 자동 검증 실패나 외부 장애를 보정하는 예외 처리 수단이다.
 - 카카오맵 검증은 검색 결과를 찾는 것만으로 끝나지 않는다.
   - 최적 후보를 확정
@@ -26,6 +27,7 @@
 ### Step 2. 사업자 자동 검증
 - 주소 지역과 무관하게 `AUTO_VERIFICATION_PENDING`
 - 국세청 API 호출
+- 요청 body에는 `b_no`, `start_dt`, `p_nm`만 포함
 - 일치하면 `AUTO_VERIFIED`
 - 불일치 또는 정상 실패면 `AUTO_VERIFICATION_FAILED`
 - 외부 장애/미설정/타임아웃이면 `AUTO_VERIFICATION_UNAVAILABLE`
@@ -176,7 +178,6 @@
   - `business_open_date`
   - `address_raw`
   - `address_normalized`
-  - `is_seoul_address`
   - `request_status`
   - `business_verification_status`
   - `map_verification_status`
