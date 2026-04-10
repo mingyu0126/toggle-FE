@@ -11,7 +11,6 @@ import MyMap from './pages/MyMap';
 import SharedMap from './pages/SharedMap';
 import Signup from './pages/Signup'; // 회원가입 페이지 추가
 import Pos from './pages/Pos';
-import Admin from './pages/Admin';
 import HomeWeb from './pages/HomeWeb'; // 신규 데스크탑 전용 맵
 import StoreWeb from './pages/StoreWeb'; // 신규 데스크탑 전용 장소 상세
 import LandingWeb from './pages/LandingWeb'; // 신규 데스크탑 랜딩
@@ -87,7 +86,7 @@ function App() {
         <Route path="/listweb" element={<ListWeb />} />
         <Route path="/signupweb" element={<SignupWeb />} />
         <Route path="/adminloginweb" element={<AdminLoginWeb />} />
-        <Route path="/adminweb" element={<AdminWeb />} />
+        <Route path="/adminweb" element={<ProtectedRoute redirectTo="/adminloginweb" roles={['ADMIN']}><AdminWeb /></ProtectedRoute>} />
         
         {/* 나머지는 모바일 프레임(최대 너비 480px 제한) 적용 */}
         <Route path="*" element={
@@ -105,7 +104,7 @@ function App() {
               <Route path="/shared" element={<SharedMap />} />
               <Route path="/shared/:id" element={<SharedMap />} />
               <Route path="/pos" element={<ProtectedRoute redirectTo="/login" roles={['OWNER']}><Pos /></ProtectedRoute>} />
-              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin" element={<ProtectedRoute redirectTo="/adminloginweb" roles={['ADMIN']}><Navigate to="/adminweb" replace /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </MobileFrame>
