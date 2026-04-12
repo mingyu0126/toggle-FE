@@ -31,8 +31,8 @@ export const STATUS_UI = {
 };
 
 export const CATEGORIES = {
-  STORE: ['식당', '카페', '베이커리', '주점', '소매점', '병원', '기타'],
-  PUBLIC: ['도서관', '주민센터', '공공체육시설', '보건소', '기타']
+  STORE: ['음식점', '카페', '편의점', '대형마트', '약국', '병원', '기타'],
+  PUBLIC: ['공공기관', '문화시설', '학교', '지하철역', '주차장', '기타']
 };
 
 export function normalizeStoreStatus(status) {

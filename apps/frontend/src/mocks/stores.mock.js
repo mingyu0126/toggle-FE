@@ -4,7 +4,12 @@ export const mockStores = [
   {
     id: 'store-1',
     name: '맛있는 덮밥집',
-    category: '식당',
+    images: [
+      'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1511688878353-3a2f5be94cd7?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1546702958-692ab629c4ba?auto=format&fit=crop&w=800&q=80'
+    ],
+    category: '음식점',
     address: '서울시 강남구 테헤란로 123',
     contact: '02-1234-5678',
     status: STATUS_TYPES.STORE.OPEN,
@@ -21,6 +26,10 @@ export const mockStores = [
   {
     id: 'store-2',
     name: '커피 한잔의 여유',
+    images: [
+      'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1582220107107-590dc8b0fad3?auto=format&fit=crop&w=800&q=80'
+    ],
     category: '카페',
     address: '서울시 서초구 서초대로 456',
     contact: '02-9876-5432',
@@ -38,7 +47,7 @@ export const mockStores = [
   {
     id: 'store-3',
     name: '정통 수제버거',
-    category: '식당',
+    category: '음식점',
     address: '서울시 강남구 논현로 789',
     contact: '02-1111-2222',
     status: STATUS_TYPES.STORE.EARLY_CLOSED,
@@ -55,7 +64,7 @@ export const mockStores = [
   {
     id: 'store-4',
     name: '신선한 빵집',
-    category: '베이커리',
+    category: '음식점',
     address: '서울시 서초구 강남대로 111',
     contact: '02-3333-4444',
     status: STATUS_TYPES.STORE.OPEN,
@@ -72,7 +81,7 @@ export const mockStores = [
   {
     id: 'store-5',
     name: '동네 호프',
-    category: '주점',
+    category: '음식점',
     address: '서울시 강남구 역삼로 222',
     contact: '02-5555-6666',
     status: STATUS_TYPES.STORE.CLOSED,
@@ -89,7 +98,7 @@ export const mockStores = [
   {
     id: 'store-6',
     name: '부산 돼지국밥',
-    category: '식당',
+    category: '음식점',
     address: '부산광역시 해운대구 우동 123',
     contact: '051-123-4567',
     status: STATUS_TYPES.STORE.OPEN,
@@ -106,7 +115,7 @@ export const mockStores = [
   {
     id: 'store-7',
     name: '제주 흑돼지 구이',
-    category: '식당',
+    category: '음식점',
     address: '제주특별자치도 제주시 연동 456',
     contact: '064-123-1122',
     status: STATUS_TYPES.STORE.OPEN,

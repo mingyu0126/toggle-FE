@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Store as StoreIcon, Play, Pause, Square, AlertTriangle, Clock, Settings, List } from 'lucide-react';
+import { LogOut, Store as StoreIcon, Play, Pause, Square, AlertTriangle, Clock, Settings, List, Image as ImageIcon } from 'lucide-react';
 import { STATUS_TYPES } from '../constants/status';
 import StatusBadge from '../components/common/StatusBadge';
 import { logout as logoutRequest } from '../lib/auth';
@@ -36,6 +36,19 @@ export default function Pos() {
 
   // 사장님 실시간 코멘트 상태
   const [ownerComment, setOwnerComment] = useState('');
+  
+  // 프론트엔드 목업 이미지 상태
+  const [storeImages, setStoreImages] = useState([
+    'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=200&q=80',
+    'https://images.unsplash.com/photo-1511688878353-3a2f5be94cd7?auto=format&fit=crop&w=200&q=80'
+  ]);
+
+  const handleImageUpload = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newImages = Array.from(e.target.files).map(file => URL.createObjectURL(file));
+      setStoreImages(prev => [...prev, ...newImages]);
+    }
+  };
 
   // 히스토리 초기값 (로그인 즉시 영업중으로 기록됨)
   const [history, setHistory] = useState([]);
@@ -308,6 +321,45 @@ export default function Pos() {
               {isSubmittingApplication ? '신청 중...' : '매장 등록 신청하기'}
             </button>
           </form>
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeaderWrap} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 className={styles.sectionTitle} style={{ margin: 0 }}><ImageIcon size={20} /> 매장 사진 관리</h2>
+            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>최대 10장</span>
+          </div>
+          
+          <div className={styles.settingsPanel} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none' }}>
+              {/* 이미지 추가 버튼 */}
+              <label 
+                style={{ 
+                  flex: '0 0 80px', height: '80px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', 
+                  border: '1px dashed rgba(255,255,255,0.2)', display: 'flex', flexDirection: 'column', 
+                  alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-primary)'
+                }}
+              >
+                <ImageIcon size={22} style={{ marginBottom: '4px' }} />
+                <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>사진 추가</span>
+                <input type="file" multiple accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} title="이미지 추가" />
+              </label>
+
+              {storeImages.map((img, idx) => (
+                <div key={idx} style={{ flex: '0 0 80px', height: '80px', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
+                  <img src={img} alt="store image" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button 
+                    style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 22, height: 22, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    onClick={() => setStoreImages(prev => prev.filter((_, i) => i !== idx))}
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button className={styles.applyBtn} onClick={() => alert('사진 설정이 저장되었습니다!')}>
+              사진 설정 저장하기
+            </button>
+          </div>
         </section>
 
         <section className={styles.section}>

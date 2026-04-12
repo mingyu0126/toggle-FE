@@ -4,7 +4,7 @@ export const mockPublicInstitutions = [
   {
     id: 'public-1',
     name: '강남구립도서관',
-    category: '도서관',
+    category: '문화시설',
     address: '서울시 강남구 삼성로 123',
     status: STATUS_TYPES.CONGESTION.NORMAL,
     estimatedWaitTime: '0분',
@@ -24,7 +24,7 @@ export const mockPublicInstitutions = [
   {
     id: 'public-2',
     name: '서초1동 주민센터',
-    category: '주민센터',
+    category: '공공기관',
     address: '서울시 서초구 서초대로 321',
     status: STATUS_TYPES.CONGESTION.BUSY,
     estimatedWaitTime: '15분',
@@ -44,7 +44,7 @@ export const mockPublicInstitutions = [
   {
     id: 'public-3',
     name: '역삼 체육문화센터',
-    category: '공공체육시설',
+    category: '공공기관',
     address: '서울시 강남구 역삼로 456',
     status: STATUS_TYPES.CONGESTION.RELAXED,
     estimatedWaitTime: '0분',
@@ -64,7 +64,7 @@ export const mockPublicInstitutions = [
   {
     id: 'public-4',
     name: '강남구 보건소',
-    category: '보건소',
+    category: '공공기관',
     address: '서울시 강남구 선릉로 789',
     status: STATUS_TYPES.CONGESTION.VERY_BUSY,
     estimatedWaitTime: '40분',
