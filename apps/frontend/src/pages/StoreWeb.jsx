@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { mockStores } from '../mocks/stores.mock';
 import StatusBadge from '../components/common/StatusBadge';
+import ImageCarousel from '../components/common/ImageCarousel';
 import { addFavoriteStore, removeFavoriteStore } from '../lib/favorites';
 import { clearAuthSession, getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import { getOwnerComment, getStoreLiveStatus } from '../lib/storeRuntime';
@@ -215,7 +216,9 @@ export default function StoreWeb() {
   if (!store) return <div style={{color: 'white', padding: '2rem'}}>Store not found</div>;
 
   // 임시 커버 이미지
-  const coverImageUrl = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=800&q=80";
+  const coverImages = store.images && store.images.length > 0
+    ? store.images
+    : ["https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=800&q=80"];
 
   // HTML5 현위치 기능
   const handleMyLocation = () => {
@@ -330,8 +333,7 @@ export default function StoreWeb() {
           <div className={styles.scrollArea} onScroll={handleScroll}>
             {/* 커버 이미지 영역 */}
             <div className={styles.coverArea}>
-              <img src={coverImageUrl} alt={store.name} className={styles.coverImage} />
-              <div className={styles.coverOverlay} />
+              <ImageCarousel images={coverImages} alt={store.name} />
             </div>
 
             <div className={styles.content}>

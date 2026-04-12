@@ -11,14 +11,20 @@ export async function createOwnerStoreApplication({
   businessLicenseFile,
 }) {
   const formData = new FormData();
-  formData.append('request', new Blob([JSON.stringify({
-    storeName,
-    businessNumber,
-    representativeName,
-    businessOpenDate,
-    businessAddress,
-    businessPhone,
-  })], { type: 'application/json' }));
+  formData.append(
+    'request',
+    new Blob(
+      [JSON.stringify({
+        storeName,
+        businessNumber,
+        representativeName,
+        businessOpenDate,
+        businessAddress,
+        businessPhone,
+      })],
+      { type: 'application/json' }
+    )
+  );
   formData.append('businessLicenseFile', businessLicenseFile);
 
   return apiRequest('/api/v1/owner/store-registration-requests', {

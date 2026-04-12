@@ -15,6 +15,8 @@ apps/backend/src/main/resources/*.yaml
 apps/frontend/.env
 apps/frontend/.env.local
 apps/frontend/.env.*.local
+/.env
+/.env.local
 
 # Local daily/tool state
 .gstack/
