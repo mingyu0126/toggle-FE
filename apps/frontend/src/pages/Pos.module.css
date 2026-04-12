@@ -229,50 +229,6 @@
   overflow: hidden;
 }
 
-.applicationList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.applicationCard {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  background: #f8fafc;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.applicationTopRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
-}
-
-.applicationBadge {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--color-primary);
-  background: rgba(59, 130, 246, 0.1);
-  border-radius: 999px;
-  padding: 0.35rem 0.65rem;
-  white-space: nowrap;
-}
-
-.applicationMetaRow {
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-}
-
-.applicationErrorText {
-  font-size: 0.9rem;
-  color: var(--color-status-red);
-  font-weight: 600;
-}
-
 .historyList {
   display: flex;
   flex-direction: column;

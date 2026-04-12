@@ -11,6 +11,7 @@ import MyMap from './pages/MyMap';
 import SharedMap from './pages/SharedMap';
 import Signup from './pages/Signup'; // 회원가입 페이지 추가
 import Pos from './pages/Pos';
+import PosWeb from './pages/PosWeb'; // 신규 데스크탑 전용 메뉴
 import HomeWeb from './pages/HomeWeb'; // 신규 데스크탑 전용 맵
 import StoreWeb from './pages/StoreWeb'; // 신규 데스크탑 전용 장소 상세
 import LandingWeb from './pages/LandingWeb'; // 신규 데스크탑 랜딩
@@ -85,6 +86,7 @@ function App() {
         <Route path="/my-mapweb" element={<ProtectedRoute redirectTo="/loginweb"><MyMapWeb /></ProtectedRoute>} />
         <Route path="/listweb" element={<ListWeb />} />
         <Route path="/signupweb" element={<SignupWeb />} />
+        <Route path="/posweb" element={<ProtectedRoute redirectTo="/loginweb" roles={['OWNER']}><PosWeb /></ProtectedRoute>} />
         <Route path="/adminloginweb" element={<AdminLoginWeb />} />
         <Route path="/adminweb" element={<ProtectedRoute redirectTo="/adminloginweb" roles={['ADMIN']}><AdminWeb /></ProtectedRoute>} />
         

@@ -134,7 +134,8 @@ export default function Home() {
       position: pos,
       title: placeData.place_name,
       status: '검색위치',
-      color: '#3b82f6' // Blue for search 
+      color: '#3b82f6', // Blue for search 
+      originalData: placeData
     });
     setKeyword(placeData.place_name); // 검색창 이름 업데이트
     setIsDropdownOpen(false);
@@ -196,9 +197,38 @@ export default function Home() {
     ...mockPublicInstitutions.map(p => ({ ...p, objType: 'CONGESTION' }))
   ];
 
-  const previewItems = allPlaces
-    .filter(place => activeCategory === '전체' || place.category === activeCategory)
-    .slice(0, 5); // 5개 노출
+  let rawPreviewItems = allPlaces.filter(place => activeCategory === '전체' || place.category === activeCategory);
+
+  // 선택된 카카오 검색 장소가 있다면 최상단에 주입
+  if (selectedPlace && selectedPlace.originalData) {
+    const kakaoData = selectedPlace.originalData;
+    // 우리 DB에 이미 있는지 확인 (이름으로 단순 매칭)
+    const existingIndex = rawPreviewItems.findIndex(p => p.name === kakaoData.place_name);
+    
+    if (existingIndex !== -1) {
+      // DB에 있으면 해당 장소를 맨 위로 끌어올림
+      const p = rawPreviewItems[existingIndex];
+      rawPreviewItems = [p, ...rawPreviewItems.filter(item => item.id !== p.id)];
+    } else {
+      // 카카오 검색 결과만 있다면 플레이스 카드 형식에 맞춰 최상단에 주입
+      const mappedPlace = {
+        id: kakaoData.id || `kakao-${kakaoData.y}-${kakaoData.x}`,
+        name: kakaoData.place_name,
+        category: kakaoData.category_group_name || kakaoData.category_name?.split(' > ').pop() || '기타',
+        status: '검색결과',
+        lastStatusUpdate: '방금',
+        address: kakaoData.road_address_name || kakaoData.address_name,
+        businessHours: kakaoData.phone || '전화번호 미제공',
+        favorites: 0,
+        rating: null,
+        hasBreakTime: false,
+        objType: 'STORE' // 기본값으로 STORE 지정
+      };
+      rawPreviewItems = [mappedPlace, ...rawPreviewItems];
+    }
+  }
+
+  const previewItems = rawPreviewItems.slice(0, 5); // 5개 노출
 
   return (
     <div className={styles.mapContainer}>

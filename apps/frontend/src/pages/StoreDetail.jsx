@@ -5,6 +5,7 @@ import { Map, MapMarker } from 'react-kakao-maps-sdk';
 import { mockStores } from '../mocks/stores.mock';
 import StatusBadge from '../components/common/StatusBadge';
 import LoginModal from '../components/common/LoginModal'; // 추가
+import ImageCarousel from '../components/common/ImageCarousel';
 import { addFavoriteStore, removeFavoriteStore } from '../lib/favorites';
 import { getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import { getOwnerComment, getStoreLiveStatus } from '../lib/storeRuntime';
@@ -154,8 +155,10 @@ export default function StoreDetail() {
 
   if (!store) return <div>Store not found</div>;
 
-  // 임시 커버 이미지 (실제로는 store 데이터에 coverImage 속성 추가 필요)
-  const coverImageUrl = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=800&q=80";
+  // 임시 커버 이미지
+  const coverImages = store.images && store.images.length > 0
+    ? store.images
+    : ["https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=800&q=80"];
 
   return (
     <div className={styles.container}>
@@ -173,10 +176,7 @@ export default function StoreDetail() {
       {/* 백그라운드 영역 (고정) */}
       <div className={styles.coverArea}>
         {viewMode === 'IMAGE' ? (
-          <>
-            <img src={coverImageUrl} alt={store.name} className={styles.coverImage} />
-            <div className={styles.coverOverlay} />
-          </>
+          <ImageCarousel images={coverImages} alt={store.name} />
         ) : (
           <Map 
             center={{ lat: store.lat, lng: store.lng }} 
