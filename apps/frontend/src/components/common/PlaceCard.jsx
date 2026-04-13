@@ -22,7 +22,8 @@ export default function PlaceCard({ place, type = 'STORE', isWeb = false, showFa
   });
 
   // 실시간 상태 주입 (점주 POS 연동)
-  const liveStatus = isStore ? getStoreLiveStatus(place.id, place.status) : place.status;
+  const runtimeStoreId = place.internalStoreId ?? place.id;
+  const liveStatus = isStore ? getStoreLiveStatus(runtimeStoreId, place.status) : place.status;
 
   React.useEffect(() => {
     const handleFavoritesChanged = () => {
@@ -41,7 +42,9 @@ export default function PlaceCard({ place, type = 'STORE', isWeb = false, showFa
       return;
     }
     if (isStore) {
-      navigate(isWeb ? `/storeweb/${place.id}` : `/store/${place.id}`);
+      navigate(isWeb ? `/storeweb/${place.id}` : `/store/${place.id}`, {
+        state: { placePreview: place },
+      });
     } else {
       navigate(isWeb ? `/publicweb/${place.id}` : `/public/${place.id}`);
     }

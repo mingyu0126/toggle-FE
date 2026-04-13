@@ -1,0 +1,49 @@
+- generic [ref=e132]:
+  - banner [ref=e133]:
+    - generic [ref=e134]:
+      - img [ref=e136]
+      - heading "Toggle Owner Dashboard" [level=1] [ref=e140]
+    - button "로그아웃" [ref=e141] [cursor=pointer]:
+      - img [ref=e142]
+      - text: 로그아웃
+  - main [ref=e145]:
+    - generic [ref=e146]:
+      - generic [ref=e147]:
+        - generic [ref=e148]: owner-shop
+        - generic [ref=e149]: "Store ID: owner@example.com"
+      - generic [ref=e150]:
+        - generic [ref=e151]: 현업 영업 상태 (LIVE)
+        - generic [ref=e152]: 영업중
+    - generic [ref=e153]:
+      - heading "실시간 상태 관리" [level=2] [ref=e154]:
+        - img [ref=e155]
+        - text: 실시간 상태 관리
+      - generic [ref=e158]:
+        - button "영업중 전환" [ref=e159] [cursor=pointer]:
+          - img [ref=e160]
+          - text: 영업중 전환
+        - button "브레이크타임" [ref=e162] [cursor=pointer]:
+          - img [ref=e163]
+          - text: 브레이크타임
+        - button "영업 종료" [ref=e166] [cursor=pointer]:
+          - img [ref=e167]
+          - text: 영업 종료
+        - button "조기 마감" [ref=e169] [cursor=pointer]:
+          - img [ref=e170]
+          - text: 조기 마감
+        - button "임시 휴무" [ref=e173] [cursor=pointer]:
+          - img [ref=e174]
+          - text: 임시 휴무
+    - generic [ref=e176]:
+      - heading "📢 사장님 실시간 코멘트" [level=2] [ref=e177]
+      - generic [ref=e178]:
+        - textbox "예) 재료가 조기 소진되었습니다!, 오늘 6시까지 영업합니다." [ref=e179]
+        - button "코멘트 저장/적용" [ref=e180] [cursor=pointer]
+    - generic [ref=e181]:
+      - heading "당일 로그 (History)" [level=2] [ref=e182]:
+        - img [ref=e183]
+        - text: 당일 로그 (History)
+      - generic [ref=e186]:
+        - generic [ref=e187]: 오후 03:14
+        - generic [ref=e188]: 영업중
+        - generic [ref=e189]: 포스기 로그인 (인증 완료)

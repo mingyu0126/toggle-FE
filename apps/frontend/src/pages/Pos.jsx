@@ -5,18 +5,15 @@ import { STATUS_TYPES } from '../constants/status';
 import StatusBadge from '../components/common/StatusBadge';
 import { logout as logoutRequest } from '../lib/auth';
 import { clearAuthSession, getCurrentUser, getRefreshToken } from '../lib/session';
-import { createOwnerStoreApplication, fetchMyOwnerStoreApplications, fetchMyOwnerStores, updateOwnerStoreStatus } from '../lib/owner';
+import { createOwnerStoreApplication, fetchMyOwnerStoreApplications, fetchMyOwnerStores, updateOwnerStoreProfile, updateOwnerStoreStatus } from '../lib/owner';
+import { getApplicationStatusMeta } from '../lib/ownerApplicationUi';
 import styles from './Pos.module.css';
 
-function getApplicationStatusText(application) {
-  if (application.requestStatus === 'APPROVED') return '승인 완료';
-  if (application.requestStatus === 'REJECTED') return '반려됨';
-  if (application.businessVerificationStatus === 'AUTO_VERIFICATION_UNAVAILABLE') return '사업자 자동 검증 재시도 필요';
-  if (application.businessVerificationStatus === 'AUTO_VERIFICATION_FAILED') return '사업자 자동 검증 실패';
-  if (application.mapVerificationStatus === 'FAILED') return '카카오 주소 검증 실패';
-  if (application.businessVerificationStatus === 'AUTO_VERIFIED' && application.mapVerificationStatus === 'VERIFIED') return '관리자 승인 대기';
-  return '검토중';
-}
+const DEFAULT_STORE_IMAGES = [
+  'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=200&q=80',
+  'https://images.unsplash.com/photo-1511688878353-3a2f5be94cd7?auto=format&fit=crop&w=200&q=80',
+];
+const MAX_OWNER_IMAGES = 10;
 
 export default function Pos() {
   const navigate = useNavigate();
@@ -27,6 +24,7 @@ export default function Pos() {
   const [applicationError, setApplicationError] = useState('');
   const [isLoadingOwnerData, setIsLoadingOwnerData] = useState(true);
   const [isSubmittingApplication, setIsSubmittingApplication] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [statusError, setStatusError] = useState('');
   const [applicationForm, setApplicationForm] = useState({
     storeName: '',
@@ -46,20 +44,26 @@ export default function Pos() {
   // 브레이크타임 설정 폼 상태
   const [breakStart, setBreakStart] = useState('15:00');
   const [breakEnd, setBreakEnd] = useState('17:00');
+  const [openTime, setOpenTime] = useState('09:00');
+  const [closeTime, setCloseTime] = useState('21:00');
 
   // 사장님 실시간 코멘트 상태
-  const [ownerComment, setOwnerComment] = useState('');
+  const [ownerComment, setOwnerCommentState] = useState('');
   
   // 프론트엔드 목업 이미지 상태
-  const [storeImages, setStoreImages] = useState([
-    'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=200&q=80',
-    'https://images.unsplash.com/photo-1511688878353-3a2f5be94cd7?auto=format&fit=crop&w=200&q=80'
-  ]);
+  const [storeImages, setStoreImagesState] = useState(DEFAULT_STORE_IMAGES);
 
   const handleImageUpload = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      const newImages = Array.from(e.target.files).map(file => URL.createObjectURL(file));
-      setStoreImages(prev => [...prev, ...newImages]);
+      const files = Array.from(e.target.files);
+      Promise.all(files.map((file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      }))).then((newImages) => {
+        setStoreImagesState((prev) => [...prev, ...newImages].slice(0, MAX_OWNER_IMAGES));
+      });
     }
   };
 
@@ -108,6 +112,12 @@ export default function Pos() {
   useEffect(() => {
     if (selectedStore) {
       setStoreStatus(selectedStore.liveBusinessStatus);
+      setOwnerCommentState(selectedStore.ownerNotice || '');
+      setStoreImagesState(selectedStore.imageUrls?.length > 0 ? selectedStore.imageUrls : DEFAULT_STORE_IMAGES);
+      setOpenTime(selectedStore.openTime || '09:00');
+      setCloseTime(selectedStore.closeTime || '21:00');
+      setBreakStart(selectedStore.breakStart || '15:00');
+      setBreakEnd(selectedStore.breakEnd || '17:00');
       setStatusError('');
     }
   }, [selectedStore]);
@@ -146,6 +156,21 @@ export default function Pos() {
       return stores[0]?.storeId ?? null;
     });
     return stores;
+  };
+
+  const buildProfilePayload = () => ({
+    ownerNotice: ownerComment,
+    openTime,
+    closeTime,
+    breakStart,
+    breakEnd,
+    imageUrls: (selectedStore?.imageUrls?.length ? storeImages : storeImages.filter((image) => !DEFAULT_STORE_IMAGES.includes(image))).slice(0, MAX_OWNER_IMAGES),
+  });
+
+  const syncUpdatedStore = (updatedStore) => {
+    setLinkedStores((prev) => prev.map((store) => (
+      store.storeId === updatedStore.storeId ? updatedStore : store
+    )));
   };
 
   const applyStoreStatus = async (nextStatus, message, nextActivePanel = null) => {
@@ -191,9 +216,40 @@ export default function Pos() {
     applyStoreStatus(STATUS_TYPES.STORE.EARLY_CLOSED, '재료소진 등으로 조기마감', null);
   };
 
-  const handleSaveComment = () => {
-    logHistory(storeStatus, `📢 사장님 코멘트 변경: "${ownerComment}"`);
-    alert('코멘트가 배포되었습니다!');
+  const handleSaveComment = async () => {
+    if (!selectedStore) {
+      return;
+    }
+
+    try {
+      setIsSavingProfile(true);
+      const updatedStore = await updateOwnerStoreProfile(selectedStore.storeId, buildProfilePayload());
+      syncUpdatedStore(updatedStore);
+      logHistory(storeStatus, `📢 사장님 코멘트 변경: "${ownerComment}"`);
+      alert('코멘트가 서버에 저장되었습니다.');
+    } catch (error) {
+      alert(error.message || '코멘트 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleSaveOperatingHours = async () => {
+    if (!selectedStore) {
+      return;
+    }
+
+    try {
+      setIsSavingProfile(true);
+      const updatedStore = await updateOwnerStoreProfile(selectedStore.storeId, buildProfilePayload());
+      syncUpdatedStore(updatedStore);
+      logHistory(storeStatus, `운영시간 변경: ${openTime} - ${closeTime} / 휴게 ${breakStart} - ${breakEnd}`);
+      alert('매장 운영시간이 서버에 저장되었습니다.');
+    } catch (error) {
+      alert(error.message || '운영시간 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const handleChangeApplicationField = (field, value) => {
@@ -258,6 +314,13 @@ export default function Pos() {
           <div>
             <div className={styles.storeName}>{displayStoreName}</div>
             <div className={styles.storeId}>Store ID: {displayStoreId}</div>
+            {selectedStore && (
+              <div className={styles.storeMetaSummary}>
+                운영시간 {openTime} - {closeTime}
+                <span className={styles.storeMetaDivider}>|</span>
+                휴게 {breakStart} - {breakEnd}
+              </div>
+            )}
           </div>
           <div className={styles.statusWrapper}>
             <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', fontWeight: 600 }}>현업 영업 상태 (LIVE)</span>
@@ -375,15 +438,27 @@ export default function Pos() {
               <div className={styles.applicationList}>
                 {applications.map((application) => (
                   <article key={application.applicationId} className={styles.applicationCard}>
+                    {(() => {
+                      const meta = getApplicationStatusMeta(application);
+                      return (
+                        <>
                     <div className={styles.applicationTopRow}>
                       <strong>{application.storeName}</strong>
-                      <span className={styles.applicationBadge}>{getApplicationStatusText(application)}</span>
+                      <span className={`${styles.applicationBadge} ${styles[`tone_${meta.tone}`]}`}>{meta.label}</span>
                     </div>
-                    <div className={styles.applicationMetaRow}>사업자번호 {application.businessNumber} · {application.businessAddressRaw}</div>
+                    <div className={styles.applicationSummary}>{meta.summary}</div>
+                    <div className={styles.applicationProgressTrack}>
+                      <div className={styles.applicationProgressFill} style={{ width: `${meta.progress}%` }} />
+                    </div>
+                    <div className={styles.applicationMetaRow}>사업자번호 {application.businessNumber}</div>
+                    <div className={styles.applicationMetaRow}>{application.businessAddressRaw}</div>
                     <div className={styles.applicationMetaRow}>사업자 검증 {application.businessVerificationStatus} · 지도 검증 {application.mapVerificationStatus}</div>
                     {application.rejectReason && (
                       <div className={styles.applicationErrorText}>반려 사유: {application.rejectReason}</div>
                     )}
+                        </>
+                      );
+                    })()}
                   </article>
                 ))}
               </div>
@@ -417,15 +492,59 @@ export default function Pos() {
                   <img src={img} alt="store image" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   <button 
                     style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 22, height: 22, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                    onClick={() => setStoreImages(prev => prev.filter((_, i) => i !== idx))}
+                    onClick={() => setStoreImagesState((prev) => prev.filter((_, i) => i !== idx))}
                   >
                     &times;
                   </button>
                 </div>
               ))}
             </div>
-            <button className={styles.applyBtn} onClick={() => alert('사진 설정이 저장되었습니다!')}>
+            <button className={styles.applyBtn} onClick={async () => {
+              if (!selectedStore) {
+                return;
+              }
+
+              try {
+                setIsSavingProfile(true);
+                const updatedStore = await updateOwnerStoreProfile(selectedStore.storeId, buildProfilePayload());
+                syncUpdatedStore(updatedStore);
+                logHistory(storeStatus, `사진 ${storeImages.length}장이 서버에 저장됨`);
+                alert('사진 설정이 서버에 저장되었습니다.');
+              } catch (error) {
+                alert(error.message || '사진 저장 중 오류가 발생했습니다.');
+              } finally {
+                setIsSavingProfile(false);
+              }
+            }} disabled={!selectedStore || isSavingProfile}>
               사진 설정 저장하기
+            </button>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}><Clock size={20} /> 매장별 운영시간 관리</h2>
+          <div className={styles.settingsPanel}>
+            <p className={styles.sectionDescription}>
+              선택한 매장 기준으로 운영시간과 브레이크타임을 저장합니다. 저장한 값은 상세 페이지 영업시간 영역에 그대로 노출됩니다.
+            </p>
+            <div className={styles.formGroup}>
+              <label>영업시간</label>
+              <div className={styles.timeInputContainer}>
+                <input type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} className={styles.timeInput} disabled={!selectedStore} />
+                <span>~</span>
+                <input type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} className={styles.timeInput} disabled={!selectedStore} />
+              </div>
+            </div>
+            <div className={styles.formGroup}>
+              <label>브레이크타임</label>
+              <div className={styles.timeInputContainer}>
+                <input type="time" value={breakStart} onChange={(e) => setBreakStart(e.target.value)} className={styles.timeInput} disabled={!selectedStore} />
+                <span>~</span>
+                <input type="time" value={breakEnd} onChange={(e) => setBreakEnd(e.target.value)} className={styles.timeInput} disabled={!selectedStore} />
+              </div>
+            </div>
+            <button className={styles.applyBtn} type="button" onClick={handleSaveOperatingHours} disabled={!selectedStore || isSavingProfile}>
+              운영시간 저장
             </button>
           </div>
         </section>
@@ -483,13 +602,13 @@ export default function Pos() {
           {/* 브레이크타임 설정 패널 */}
           {activePanel === STATUS_TYPES.STORE.BREAK_TIME && (
             <div className={styles.settingsPanel}>
-              <div className={styles.formGroup}>
-                <label>브레이크타임 시간 설정</label>
-                <div className={styles.timeInputContainer}>
-                  <input type="time" value={breakStart} onChange={(e) => setBreakStart(e.target.value)} className={styles.timeInput}/>
-                  <span>~</span>
-                  <input type="time" value={breakEnd} onChange={(e) => setBreakEnd(e.target.value)} className={styles.timeInput}/>
-                </div>
+              <p className={styles.sectionDescription}>
+                저장된 브레이크타임 설정을 기준으로 지금 상태를 브레이크타임으로 전환합니다.
+              </p>
+              <div className={styles.storeMetaSummary}>
+                기본 영업 {openTime} - {closeTime}
+                <span className={styles.storeMetaDivider}>|</span>
+                브레이크 {breakStart} - {breakEnd}
               </div>
               <button className={styles.applyBtn} onClick={handleApplyBreak}>적용 및 상태 변경</button>
             </div>
@@ -518,10 +637,10 @@ export default function Pos() {
             <textarea 
               placeholder="예) 재료가 조기 소진되었습니다!, 오늘 6시까지 영업합니다."
               value={ownerComment}
-              onChange={(e) => setOwnerComment(e.target.value)}
+              onChange={(e) => setOwnerCommentState(e.target.value)}
               className={styles.commentInput}
             />
-            <button className={styles.applyBtn} onClick={handleSaveComment}>코멘트 저장/적용</button>
+            <button className={styles.applyBtn} onClick={handleSaveComment} disabled={!selectedStore || isSavingProfile}>코멘트 저장/적용</button>
           </div>
         </section>
 

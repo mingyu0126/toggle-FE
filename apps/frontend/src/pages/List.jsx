@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronDown, MapPin, List as ListIcon, Heart, User } from 'lucide-react';
 import SearchBar from '../components/home/SearchBar';
 import PlaceCard from '../components/common/PlaceCard';
-import { mockStores } from '../mocks/stores.mock';
-import { mockPublicInstitutions } from '../mocks/public.mock';
 import { CATEGORIES } from '../constants/status';
+import { useKakaoPlacesWithLookup } from '../hooks/useKakaoPlacesWithLookup';
 import styles from './List.module.css';
 
 export default function List() {
@@ -15,22 +14,31 @@ export default function List() {
   const [searchQuery, setSearchQuery] = useState('');
   const [onlyOpen, setOnlyOpen] = useState(false);
   
+  const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
+  const [isLocating, setIsLocating] = useState(true);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setMapCenter({ lat: position.coords.latitude, lng: position.coords.longitude });
+          setIsLocating(false);
+        },
+        () => setIsLocating(false)
+      );
+    } else {
+      setIsLocating(false);
+    }
+  }, []);
+
+  const { places, isLoading: isPlacesLoading } = useKakaoPlacesWithLookup(mapCenter, searchQuery, activeCategory);
+
   // 모든 장소 태그 병합용
   const allCategories = ['전체', ...new Set([...CATEGORIES.STORE, ...CATEGORIES.PUBLIC])];
 
-  // 임시 데이터 병합 (진짜 실서비스에선 API나 데이터 속성에 따라 필터가 다르게 적용됨)
-  // 여기에서는 구별없이 다 합치고 카테고리에 맞는 것만 필터링합니다.
-  const allPlaces = [
-    ...mockStores.map(s => ({ ...s, objType: 'STORE' })),
-    ...mockPublicInstitutions.map(p => ({ ...p, objType: 'CONGESTION' }))
-  ];
-
-  const filteredPlaces = allPlaces.filter(p => {
-    const matchesCategory = activeCategory === '전체' || p.category === activeCategory;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.address.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesOpen = onlyOpen ? (p.objType === 'STORE' ? p.status === 'OPEN' : true) : true;
-    return matchesCategory && matchesSearch && matchesOpen;
+  const filteredPlaces = places.filter(p => {
+    const matchesOpen = onlyOpen ? p.status === 'OPEN' : true;
+    return matchesOpen;
   });
 
   // 별점/찜 모의 정렬 로직
@@ -90,7 +98,11 @@ export default function List() {
 
       {/* 리스트 영역 */}
       <main className={styles.content}>
-        {sortedPlaces.length > 0 ? (
+        {isLocating || isPlacesLoading ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-secondary)' }}>
+            장소를 찾는 중입니다...
+          </div>
+        ) : sortedPlaces.length > 0 ? (
           sortedPlaces.map(place => (
             <PlaceCard 
               key={`${place.objType}-${place.id}`} 

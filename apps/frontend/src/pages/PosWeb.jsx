@@ -5,8 +5,16 @@ import { STATUS_TYPES } from '../constants/status';
 import StatusBadge from '../components/common/StatusBadge';
 import { logout as logoutRequest } from '../lib/auth';
 import { clearAuthSession, getCurrentUser, getRefreshToken } from '../lib/session';
-import { createOwnerStoreApplication, fetchMyOwnerStoreApplications, fetchMyOwnerStores, updateOwnerStoreStatus } from '../lib/owner';
+import { createOwnerStoreApplication, fetchMyOwnerStoreApplications, fetchMyOwnerStores, updateOwnerStoreProfile, updateOwnerStoreStatus } from '../lib/owner';
+import { getApplicationStatusMeta } from '../lib/ownerApplicationUi';
 import styles from './PosWeb.module.css';
+
+const DEFAULT_STORE_IMAGES = [
+  'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=400&q=80',
+  'https://images.unsplash.com/photo-1511688878353-3a2f5be94cd7?auto=format&fit=crop&w=400&q=80',
+  'https://images.unsplash.com/photo-1546702958-692ab629c4ba?auto=format&fit=crop&w=400&q=80',
+];
+const MAX_OWNER_IMAGES = 10;
 
 export default function PosWeb() {
   const navigate = useNavigate();
@@ -15,6 +23,7 @@ export default function PosWeb() {
   const [selectedStoreId, setSelectedStoreId] = useState(null);
   const [applications, setApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [statusError, setStatusError] = useState('');
   
   const [activeTab, setActiveTab] = useState('DASHBOARD'); // 'DASHBOARD', 'APPLICATION'
@@ -24,14 +33,13 @@ export default function PosWeb() {
   const displayStoreId = selectedStore?.storeId || currentUser.email || currentUser.id || 'owner';
   
   const [storeStatus, setStoreStatus] = useState(STATUS_TYPES.STORE.CLOSED);
-  const [ownerComment, setOwnerComment] = useState('');
+  const [ownerComment, setOwnerCommentState] = useState('');
+  const [openTime, setOpenTime] = useState('09:00');
+  const [closeTime, setCloseTime] = useState('21:00');
+  const [breakStart, setBreakStart] = useState('15:00');
+  const [breakEnd, setBreakEnd] = useState('17:00');
   
-  // Mock image state
-  const [storeImages, setStoreImages] = useState([
-    'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=400&q=80',
-    'https://images.unsplash.com/photo-1511688878353-3a2f5be94cd7?auto=format&fit=crop&w=400&q=80',
-    'https://images.unsplash.com/photo-1546702958-692ab629c4ba?auto=format&fit=crop&w=400&q=80'
-  ]);
+  const [storeImages, setStoreImagesState] = useState(DEFAULT_STORE_IMAGES);
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
@@ -60,6 +68,12 @@ export default function PosWeb() {
   useEffect(() => {
     if (selectedStore) {
       setStoreStatus(selectedStore.liveBusinessStatus);
+      setOwnerCommentState(selectedStore.ownerNotice || '');
+      setStoreImagesState(selectedStore.imageUrls?.length > 0 ? selectedStore.imageUrls : DEFAULT_STORE_IMAGES);
+      setOpenTime(selectedStore.openTime || '09:00');
+      setCloseTime(selectedStore.closeTime || '21:00');
+      setBreakStart(selectedStore.breakStart || '15:00');
+      setBreakEnd(selectedStore.breakEnd || '17:00');
     }
   }, [selectedStore]);
 
@@ -93,8 +107,48 @@ export default function PosWeb() {
 
   const handleImageUpload = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      const newImages = Array.from(e.target.files).map(file => URL.createObjectURL(file));
-      setStoreImages(prev => [...prev, ...newImages]);
+      const files = Array.from(e.target.files);
+      Promise.all(files.map((file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      }))).then((newImages) => {
+        setStoreImagesState((prev) => [...prev, ...newImages].slice(0, MAX_OWNER_IMAGES));
+      });
+    }
+  };
+
+  const buildProfilePayload = () => ({
+    ownerNotice: ownerComment,
+    openTime,
+    closeTime,
+    breakStart,
+    breakEnd,
+    imageUrls: (selectedStore?.imageUrls?.length ? storeImages : storeImages.filter((image) => !DEFAULT_STORE_IMAGES.includes(image))).slice(0, MAX_OWNER_IMAGES),
+  });
+
+  const syncUpdatedStore = (updatedStore) => {
+    setLinkedStores((prev) => prev.map((store) => (
+      store.storeId === updatedStore.storeId ? updatedStore : store
+    )));
+  };
+
+  const handleSaveOperatingHours = async () => {
+    if (!selectedStore) {
+      return;
+    }
+
+    try {
+      setIsSavingProfile(true);
+      const updatedStore = await updateOwnerStoreProfile(selectedStore.storeId, buildProfilePayload());
+      syncUpdatedStore(updatedStore);
+      logHistory(storeStatus, `운영시간 변경: ${openTime} - ${closeTime} / 휴게 ${breakStart} - ${breakEnd}`);
+      alert('운영시간이 서버에 저장되었습니다.');
+    } catch (error) {
+      alert(error.message || '운영시간 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
@@ -154,6 +208,7 @@ export default function PosWeb() {
           </div>
         </header>
 
+        {activeTab === 'DASHBOARD' ? (
         <div className={styles.dashboardGrid}>
           {/* 상태 변경 컨트롤 패널 */}
           <section className={`${styles.card} ${styles.statusCard}`}>
@@ -187,12 +242,41 @@ export default function PosWeb() {
                 <input 
                   type="text" 
                   value={ownerComment} 
-                  onChange={(e) => setOwnerComment(e.target.value)} 
+                  onChange={(e) => setOwnerCommentState(e.target.value)} 
                   placeholder="예) 곧 재료가 소진됩니다! 서둘러 주세요." 
                   className={styles.TextInput}
                 />
-                <button className={styles.primaryBtn} onClick={() => logHistory(storeStatus, `공지 업데이트: ${ownerComment}`)}>반영</button>
+                <button className={styles.primaryBtn} onClick={async () => {
+                  if (!selectedStore) {
+                    return;
+                  }
+
+                  try {
+                    setIsSavingProfile(true);
+                    const updatedStore = await updateOwnerStoreProfile(selectedStore.storeId, buildProfilePayload());
+                    syncUpdatedStore(updatedStore);
+                    logHistory(storeStatus, `공지 업데이트: ${ownerComment}`);
+                    alert('공지 정보가 서버에 저장되었습니다.');
+                  } catch (error) {
+                    alert(error.message || '공지 저장 중 오류가 발생했습니다.');
+                  } finally {
+                    setIsSavingProfile(false);
+                  }
+                }} disabled={!selectedStore || isSavingProfile}>반영</button>
               </div>
+            </div>
+            <div className={styles.divider} />
+            <div className={styles.commentSection}>
+              <h4>운영시간 관리</h4>
+              <div className={styles.commentInputWrap}>
+                <input type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} className={styles.TextInput} />
+                <input type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} className={styles.TextInput} />
+              </div>
+              <div className={styles.commentInputWrap}>
+                <input type="time" value={breakStart} onChange={(e) => setBreakStart(e.target.value)} className={styles.TextInput} />
+                <input type="time" value={breakEnd} onChange={(e) => setBreakEnd(e.target.value)} className={styles.TextInput} />
+              </div>
+              <button className={styles.primaryBtn} onClick={handleSaveOperatingHours} disabled={!selectedStore || isSavingProfile}>운영시간 저장</button>
             </div>
           </section>
 
@@ -214,7 +298,23 @@ export default function PosWeb() {
           <section className={`${styles.card} ${styles.fullWidthCard}`}>
             <div className={styles.cardHeader}>
               <h3><ImageIcon size={20} /> 매장 사진첩 관리 (최대 10장)</h3>
-              <button className={styles.primaryBtn} onClick={() => alert('사진이 모두 클라우드에 연동되었습니다.')}>서버에 저장하기</button>
+              <button className={styles.primaryBtn} onClick={async () => {
+                if (!selectedStore) {
+                  return;
+                }
+
+                try {
+                  setIsSavingProfile(true);
+                  const updatedStore = await updateOwnerStoreProfile(selectedStore.storeId, buildProfilePayload());
+                  syncUpdatedStore(updatedStore);
+                  logHistory(storeStatus, `사진 ${storeImages.length}장이 서버에 저장됨`);
+                  alert('사진이 서버에 저장되었습니다.');
+                } catch (error) {
+                  alert(error.message || '사진 저장 중 오류가 발생했습니다.');
+                } finally {
+                  setIsSavingProfile(false);
+                }
+              }} disabled={!selectedStore || isSavingProfile}>서버에 저장하기</button>
             </div>
             <p className={styles.subtext}>점주님이 등록하신 이 사진들이 매장 상세 페이지 상단 캐러셀에 아름답게 나타납니다.</p>
 
@@ -228,12 +328,47 @@ export default function PosWeb() {
               {storeImages.map((img, idx) => (
                 <div className={styles.imagePreview} key={idx}>
                   <img src={img} alt={`Preview ${idx}`} />
-                  <button className={styles.deleteImgBtn} onClick={() => setStoreImages(prev => prev.filter((_, i) => i !== idx))}>&times;</button>
+                  <button className={styles.deleteImgBtn} onClick={() => setStoreImagesState((prev) => prev.filter((_, i) => i !== idx))}>&times;</button>
                 </div>
               ))}
             </div>
           </section>
         </div>
+        ) : (
+          <div className={styles.dashboardGrid} style={{ display: 'block' }}>
+            <section className={styles.card}>
+              <h3><Briefcase size={20} /> 입점 신청 현황</h3>
+              <p className={styles.subtext}>사업자 확인, 지도 검증, 관리자 승인 단계를 한 번에 확인합니다.</p>
+              {applications.length === 0 ? (
+                <div className={styles.subtext}>아직 제출한 신청이 없습니다.</div>
+              ) : (
+                <div className={styles.applicationList}>
+                  {applications.map((application) => {
+                    const meta = getApplicationStatusMeta(application);
+                    return (
+                      <article key={application.applicationId} className={styles.applicationCard}>
+                        <div className={styles.applicationTopRow}>
+                          <strong>{application.storeName}</strong>
+                          <span className={`${styles.applicationBadge} ${styles[`tone_${meta.tone}`]}`}>{meta.label}</span>
+                        </div>
+                        <div className={styles.applicationSummary}>{meta.summary}</div>
+                        <div className={styles.applicationProgressTrack}>
+                          <div className={styles.applicationProgressFill} style={{ width: `${meta.progress}%` }} />
+                        </div>
+                        <div className={styles.applicationMetaRow}>사업자번호 {application.businessNumber}</div>
+                        <div className={styles.applicationMetaRow}>{application.businessAddressRaw}</div>
+                        <div className={styles.applicationMetaRow}>사업자 검증 {application.businessVerificationStatus} · 지도 검증 {application.mapVerificationStatus}</div>
+                        {application.rejectReason && (
+                          <div className={styles.applicationErrorText}>반려 사유: {application.rejectReason}</div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
       </main>
     </div>
   );

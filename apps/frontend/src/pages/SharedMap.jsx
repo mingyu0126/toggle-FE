@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Search, User, Map as MapIcon } from 'lucide-react';
-import { mockUser } from '../mocks/users.mock';
-import { mockStores } from '../mocks/stores.mock';
 import PlaceCard from '../components/common/PlaceCard';
+import { lookupStoresByExternalPlaceIds } from '../lib/stores';
+import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
 import styles from './SharedMap.module.css';
 
 export default function SharedMap() {
@@ -11,7 +11,8 @@ export default function SharedMap() {
   const { id } = useParams(); // /shared/:id
   
   const [searchId, setSearchId] = useState(id || '');
-  const [searchedUser, setSearchedUser] = useState(id ? mockUser : null); // Mock implementation
+  const [searchedUser, setSearchedUser] = useState(null); 
+  const [sharedStores, setSharedStores] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSearch = (e) => {
@@ -19,21 +20,37 @@ export default function SharedMap() {
     if (!searchId) return;
     
     setIsLoading(true);
-    setTimeout(() => {
-      // Mock search logic
+    // Real implementation would call /api/v1/users/search or similar
+    setTimeout(async () => {
       if (searchId === 'toggle_user_1' || searchId === 'test') {
-        setSearchedUser(mockUser);
+        const mockFoundUser = { 
+          nickname: '토글러', 
+          username: 'toggle_user_1',
+          favorites: { stores: ['store-1', 'store-3'] } 
+        };
+        setSearchedUser(mockFoundUser);
+        
+        try {
+          const fetched = await lookupStoresByExternalPlaceIds('KAKAO', mockFoundUser.favorites.stores);
+          setSharedStores(fetched.map(mapFavoriteStoreItemToPlace));
+        } catch (err) {
+          console.error(err);
+        }
+        
         navigate(`/shared/${searchId}`, { replace: true });
       } else {
         setSearchedUser('NOT_FOUND');
+        setSharedStores([]);
       }
       setIsLoading(false);
     }, 500);
   };
 
-  const sharedStores = searchedUser && searchedUser !== 'NOT_FOUND' 
-    ? mockStores.filter(s => searchedUser.favorites.stores.includes(s.id))
-    : [];
+  useEffect(() => {
+    if (id) {
+      handleSearch({ preventDefault: () => {} });
+    }
+  }, [id]);
 
   return (
     <div className={styles.container}>

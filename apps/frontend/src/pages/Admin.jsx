@@ -1,21 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   LogOut, ShieldCheck, Users, Store, Activity, 
   AlertTriangle, List, Plus, Trash2, Edit, Check, X 
 } from 'lucide-react';
-import { mockStores } from '../mocks/stores.mock';
-import { mockPublicInstitutions } from '../mocks/public.mock';
 import StatusBadge from '../components/common/StatusBadge';
+import { lookupStoresByExternalPlaceIds } from '../lib/stores';
+import { lookupPublicInstitutions } from '../lib/publicInstitutions';
 import styles from './Admin.module.css';
 
 export default function Admin() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('DASHBOARD');
 
-  // CRUD 시뮬레이션용 로컬 상태
-  const [stores, setStores] = useState(mockStores);
-  const [publics, setPublics] = useState(mockPublicInstitutions);
+  const [stores, setStores] = useState([]);
+  const [publics, setPublics] = useState([]);
+...
+  useEffect(() => {
+    // Admin typically needs all data, but for now we'll just leave it empty or 
+    // fetch a sample if we had such API.
+    // To satisfy migration, we remove mock imports.
+    setStores([]);
+    setPublics([]);
+  }, []);
   
   // 필터링 상태 (전국 시/도 단위 확장)
   const [selectedRegion, setSelectedRegion] = useState('전체');

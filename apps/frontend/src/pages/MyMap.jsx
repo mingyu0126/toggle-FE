@@ -1,20 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Share2, User, Heart, MapPin, List as ListIcon, Settings, Search, Edit2, Camera } from 'lucide-react';
-import { mockUser } from '../mocks/users.mock';
-import { mockStores } from '../mocks/stores.mock';
 import { CATEGORIES, STATUS_TYPES } from '../constants/status';
-import { mockPublicInstitutions } from '../mocks/public.mock';
 import PlaceCard from '../components/common/PlaceCard';
 import { Map, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import LoginModal from '../components/common/LoginModal'; // 로그인 유도 모달 추가
 import { clearAuthSession, getCurrentUser, isLoggedIn as getIsLoggedIn, updateCurrentUser } from '../lib/session';
+import { lookupStoresByExternalPlaceIds } from '../lib/stores';
+import { lookupPublicInstitutions } from '../lib/publicInstitutions';
+import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
 import styles from './MyMap.module.css';
 
 export default function MyMap() {
   const navigate = useNavigate();
   const initialUser = getCurrentUser();
-  const initialDisplayName = initialUser.nickname || initialUser.email?.split('@')[0] || mockUser.nickname;
+  const initialDisplayName = initialUser.nickname || initialUser.email?.split('@')[0] || '사용자';
   const [isPublic, setIsPublic] = useState(initialUser.isPublicMap ?? false);
   const [activeCategory, setActiveCategory] = useState('전체');
   const [onlyOpen, setOnlyOpen] = useState(false);
@@ -53,11 +53,13 @@ export default function MyMap() {
 
   // 현재 사용자 나만의 지도 에 등록된 항목들 (로컬스토리지 동기화)
   const [myMapPlaces, setMyMapPlaces] = useState(currentUser.myMap || { stores: [], publics: [] });
+  const [stores, setStores] = useState([]);
+  const [publicInstitutions, setPublicInstitutions] = useState([]);
 
   useEffect(() => {
     const syncAuthState = () => {
       const latestUser = getCurrentUser();
-      const latestDisplayName = latestUser.nickname || latestUser.email?.split('@')[0] || '내 사용자';
+      const latestDisplayName = latestUser.nickname || latestUser.email?.split('@')[0] || '사용자';
       setCurrentUser(latestUser);
       setIsLoggedIn(getIsLoggedIn());
       setIsPublic(latestUser.isPublicMap ?? false);
@@ -71,11 +73,49 @@ export default function MyMap() {
     return () => window.removeEventListener('authChanged', syncAuthState);
   }, []);
 
-  const favStores = mockStores.filter(s => myMapPlaces.stores && myMapPlaces.stores.includes(s.id));
-  const favPublics = mockPublicInstitutions.filter(p => myMapPlaces.publics && myMapPlaces.publics.includes(p.id));
+  useEffect(() => {
+    const fetchStores = async () => {
+      const storeIds = searchedUser ? (searchedUser.favorites?.stores || []) : (myMapPlaces.stores || []);
+      if (storeIds.length === 0) {
+        setStores([]);
+        return;
+      }
+      try {
+        const fetched = await lookupStoresByExternalPlaceIds('KAKAO', storeIds);
+        setStores(fetched.map(mapFavoriteStoreItemToPlace));
+      } catch (err) {
+        console.error('Failed to fetch stores:', err);
+      }
+    };
+    fetchStores();
+  }, [myMapPlaces.stores, searchedUser]);
 
-  const currentStores = searchedUser ? mockStores.filter(s => searchedUser.favorites.stores && searchedUser.favorites.stores.includes(s.id)) : favStores;
-  const currentPublics = searchedUser ? mockPublicInstitutions.filter(p => searchedUser.favorites.publics && searchedUser.favorites.publics.includes(p.id)) : favPublics;
+  useEffect(() => {
+    const fetchPublics = async () => {
+      const publicIds = searchedUser ? (searchedUser.favorites?.publics || []) : (myMapPlaces.publics || []);
+      if (publicIds.length === 0) {
+        setPublicInstitutions([]);
+        return;
+      }
+      try {
+        const fetched = await lookupPublicInstitutions('KAKAO', publicIds);
+        setPublicInstitutions(fetched.map(p => ({
+          ...p,
+          status: p.congestionLevel,
+          objType: 'PUBLIC',
+        })));
+      } catch (err) {
+        console.error('Failed to fetch public institutions:', err);
+      }
+    };
+    fetchPublics();
+  }, [myMapPlaces.publics, searchedUser]);
+
+  const favStores = stores;
+  const favPublics = publicInstitutions;
+
+  const currentStores = favStores;
+  const currentPublics = favPublics;
 
   const filteredStores = currentStores.filter(store => {
     const passCategory = activeCategory === '전체' || store.category === activeCategory;

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Heart, Store, Users, User, MapPin, List as ListIcon } from 'lucide-react';
-import { mockPublicInstitutions } from '../mocks/public.mock';
 import PlaceCard from '../components/common/PlaceCard';
 import { fetchFavoriteStores } from '../lib/favorites';
+import { lookupPublicInstitutions } from '../lib/publicInstitutions';
 import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
 import { getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn, updateCurrentUser } from '../lib/session';
 import styles from './Favorites.module.css';
@@ -13,13 +13,15 @@ export default function Favorites() {
   const [activeTab, setActiveTab] = useState('ALL');
   const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
   const [favoriteStores, setFavoriteStores] = useState([]);
+  const [favoritePublics, setFavoritePublics] = useState([]);
   const [favoritePublicIds, setFavoritePublicIds] = useState(() => getLocalFavorites().publics || []);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const loadFavoriteStores = async () => {
+  const loadFavorites = async () => {
     if (!getIsLoggedIn()) {
       setFavoriteStores([]);
+      setFavoritePublics([]);
       return;
     }
 
@@ -27,17 +29,32 @@ export default function Favorites() {
     setError('');
 
     try {
-      const items = await fetchFavoriteStores();
-      setFavoriteStores(items.map(mapFavoriteStoreItemToPlace));
+      const [storeItems, latestFavorites] = await Promise.all([
+        fetchFavoriteStores(),
+        Promise.resolve(getLocalFavorites()) // publics IDs are already in user profile from /me
+      ]);
+      
+      setFavoriteStores(storeItems.map(mapFavoriteStoreItemToPlace));
+      
+      if (latestFavorites.publics?.length > 0) {
+        const publicItems = await lookupPublicInstitutions('KAKAO', latestFavorites.publics);
+        setFavoritePublics(publicItems.map(p => ({
+          ...p,
+          status: p.congestionLevel,
+          objType: 'PUBLIC',
+        })));
+      } else {
+        setFavoritePublics([]);
+      }
     } catch (loadError) {
-      setError(loadError.message || '저장한 매장을 불러오지 못했습니다.');
+      setError(loadError.message || '저장한 장소를 불러오지 못했습니다.');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadFavoriteStores();
+    loadFavorites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -45,14 +62,14 @@ export default function Favorites() {
     const handleFavoritesChanged = () => {
       setIsLoggedIn(getIsLoggedIn());
       setFavoritePublicIds(getLocalFavorites().publics || []);
-      loadFavoriteStores();
+      loadFavorites();
     };
 
     window.addEventListener('favoritesChanged', handleFavoritesChanged);
     return () => window.removeEventListener('favoritesChanged', handleFavoritesChanged);
   }, []);
 
-  const favPublics = mockPublicInstitutions.filter((place) => favoritePublicIds.map(String).includes(String(place.id)));
+  const favPublics = favoritePublics;
   const totalCount = favoriteStores.length + favPublics.length;
 
   const handleAddToMyMap = (itemId, type) => {

@@ -643,3 +643,94 @@
   color: var(--color-primary);
   text-decoration: underline;
 }
+
+/* ========================================================
+   Responsive Media Queries
+   ======================================================== */
+
+/* Tablet & Smaller Desktop (max-width: 1024px) */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 360px;
+    min-width: 360px;
+  }
+  .headerSearch {
+    width: 250px;
+  }
+}
+
+/* Mobile & Small Tablet (max-width: 768px) */
+@media (max-width: 768px) {
+  .webHeader {
+    padding: 0 1rem;
+    height: 60px;
+  }
+  .logoText {
+    font-size: 1.25rem;
+  }
+  .headerSearch {
+    width: auto;
+    flex: 1;
+    margin: 0 1rem;
+  }
+  .navBtn {
+    display: none;
+  }
+  .webFooter {
+    display: none;
+  }
+  
+  /* Stack sidebar and map */
+  .webBody {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    height: 50vh;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .contentArea {
+    flex: 1;
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .myLocationBtn {
+    bottom: 1rem;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+  }
+  
+  .webBottomNav {
+    padding: 0;
+    justify-content: center;
+  }
+  
+  .content {
+    margin-top: -2rem;
+    padding: 1rem;
+    border-radius: 20px 20px 0 0;
+  }
+  
+  .title {
+    font-size: 1.4rem;
+  }
+}
+
+/* Extra Small Mobile (max-width: 480px) */
+@media (max-width: 480px) {
+  .headerInput {
+    display: none;
+  }
+  .headerSearch {
+    padding: 0.5rem;
+    justify-content: center;
+    background: transparent;
+    border-color: transparent;
+  }
+}

@@ -1,29 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Map, MapMarker, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import { 
   Search, Crosshair, Store as StoreIcon, Heart, User, MapPin, List as ListIcon,
   ChevronLeft, Phone, Clock, AlertCircle, Share2, Navigation
 } from 'lucide-react';
-import { mockStores } from '../mocks/stores.mock';
 import StatusBadge from '../components/common/StatusBadge';
 import ImageCarousel from '../components/common/ImageCarousel';
 import { addFavoriteStore, removeFavoriteStore } from '../lib/favorites';
 import { clearAuthSession, getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
-import { getOwnerComment, getStoreLiveStatus } from '../lib/storeRuntime';
+import { getStoreLiveStatus, getStoreOperatingInfoByCandidates } from '../lib/storeRuntime';
+import { useStoreLookupByExternalPlaceId } from '../hooks/useStoreLookupByExternalPlaceId';
+import { mergeLookupStoreIntoDetail } from '../lib/storePreview';
 import styles from './StoreWeb.module.css';
 
 export default function StoreWeb() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   
   // mock data lookup
-  const initialStore = mockStores.find(s => s.id === id) || mockStores[0];
+  const previewStore = location.state?.placePreview || null;
+  const { storeMatch, isLoading: isLookupLoading } = useStoreLookupByExternalPlaceId(id);
+  const baseStore = mergeLookupStoreIntoDetail(previewStore, storeMatch);
+  const runtimeStoreId = baseStore.internalStoreId ?? baseStore.id;
+  const operatingInfo = getStoreOperatingInfoByCandidates([runtimeStoreId, id]);
+  const mergedStore = mergeLookupStoreIntoDetail(previewStore, storeMatch, operatingInfo);
   const store = {
-    ...initialStore,
-    status: getStoreLiveStatus(initialStore.id, initialStore.status),
+    ...mergedStore,
+    status: getStoreLiveStatus(runtimeStoreId, mergedStore.status),
   };
-  const ownerComment = getOwnerComment(initialStore.id);
+  const ownerComment = store.ownerNotice || '';
+  const ownerImages = store.ownerImages || [];
   const [isFavorite, setIsFavorite] = useState(() => getLocalFavorites().stores.map(String).includes(String(store.id)));
   const [isFavoriteSubmitting, setIsFavoriteSubmitting] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
@@ -52,7 +60,7 @@ export default function StoreWeb() {
       // 위치 데이터가 mock에 없을 경우 임시 위치
       setMapCenter({ lat: 37.5065, lng: 127.0536 });
     }
-  }, [store]);
+  }, [store?.lat, store?.lng]);
 
   useEffect(() => {
     const syncFavoriteState = () => {
@@ -213,10 +221,59 @@ export default function StoreWeb() {
     }
   };
 
-  if (!store) return <div style={{color: 'white', padding: '2rem'}}>Store not found</div>;
+  const renderEmptyState = (message) => (
+    <div className={styles.webContainer}>
+      <header className={styles.webHeader}>
+        <div className={styles.logoGroup} onClick={() => navigate('/mapweb')}>
+          <StoreIcon size={28} className={styles.logoIcon} />
+          <span className={styles.logoText}>Toggle PC</span>
+        </div>
+        
+        <nav className={styles.navLinks}>
+          <button className={styles.iconBtn} onClick={() => navigate('/favoritesweb')}><Heart size={20} /></button>
+          <button className={styles.iconBtn} onClick={() => navigate('/my-mapweb')}><User size={20} /></button>
+        </nav>
+      </header>
+
+      <div className={styles.webBody}>
+        <aside className={styles.sidebar} style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ color: 'rgba(255,255,255,0.7)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', padding: '2rem', textAlign: 'center' }}>
+            <AlertCircle size={48} color="rgba(255,255,255,0.3)" />
+            <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>{message}</span>
+            <button 
+              onClick={() => navigate('/mapweb')}
+              style={{
+                marginTop: '1rem',
+                background: 'var(--color-primary)',
+                color: 'white',
+                border: 'none',
+                padding: '0.75rem 1.5rem',
+                borderRadius: 'var(--radius-full)',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              지도로 돌아가기
+            </button>
+          </div>
+        </aside>
+
+        <div className={styles.contentArea}>
+          <main className={styles.mapArea}>
+            <Map center={{ lat: 37.5065, lng: 127.0536 }} style={{ width: '100%', height: '100%', borderRadius: '16px' }} level={4} />
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isLookupLoading) return renderEmptyState('장소 상태를 상세 조회하는 중입니다...');
+  if (!store || !store.name) return renderEmptyState('장소 정보를 불러올 수 없습니다. URL을 재확인하시거나 지도를 통해 진입해주세요.');
 
   // 임시 커버 이미지
-  const coverImages = store.images && store.images.length > 0
+  const coverImages = ownerImages.length > 0
+    ? ownerImages
+    : store.images && store.images.length > 0
     ? store.images
     : ["https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=800&q=80"];
 
@@ -366,6 +423,18 @@ export default function StoreWeb() {
                   <MapPin size={18} className={styles.icon} />
                   <span>{store.address}</span>
                 </div>
+                {store.roadAddress && store.roadAddress !== store.address && (
+                  <div className={styles.infoItem}>
+                    <MapPin size={18} className={styles.icon} />
+                    <span>도로명: {store.roadAddress}</span>
+                  </div>
+                )}
+                {store.jibunAddress && (
+                  <div className={styles.infoItem}>
+                    <MapPin size={18} className={styles.icon} />
+                    <span>지번: {store.jibunAddress}</span>
+                  </div>
+                )}
                 <div className={styles.infoItem}>
                   <Phone size={18} className={styles.icon} />
                   <span>{store.contact}</span>
@@ -379,6 +448,15 @@ export default function StoreWeb() {
                         휴게시간: {store.breakTime}
                       </div>
                     )}
+                  </div>
+                </div>
+                <div className={styles.infoItem}>
+                  <AlertCircle size={18} className={styles.icon} />
+                  <div>
+                    <div>데이터 출처: {store.source || 'KAKAO'}</div>
+                    <div style={{ color: '#94a3b8', marginTop: '0.2rem' }}>
+                      {store.verifiedAt ? `검증 시각: ${store.verifiedAt}` : '카카오 검색 결과 기반'}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -265,3 +265,45 @@
   color: rgba(255, 255, 255, 0.3);
   font-size: 0.7rem;
 }
+
+/* ========================================================
+   Responsive Media Queries
+   ======================================================== */
+
+@media (max-width: 1024px) {
+  .sidebar { width: 220px; }
+  .headerSearch { width: 300px; }
+  .gridContainer { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .webHeader { padding: 0 1rem; height: 60px; }
+  .headerSearch { width: auto; flex: 1; margin: 0 1rem; }
+  .navLinks { display: none; }
+  
+  .webBody { 
+    flex-direction: column; 
+    height: auto; 
+    min-height: calc(100vh - 64px - 80px); 
+  }
+  
+  .sidebar { 
+    width: 100%; 
+    border-right: none; 
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
+    padding: 1rem; 
+    max-height: 200px; 
+    display: flex; 
+    flex-direction: row; 
+    flex-wrap: wrap; 
+    gap: 1rem;
+  }
+  
+  .gridWrapper { padding: 1rem; }
+  .gridContainer { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .searchInput { display: none; }
+  .headerSearch { padding: 0.5rem; justify-content: center; background: transparent; border-color: transparent; }
+}

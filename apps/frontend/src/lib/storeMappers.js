@@ -1,20 +1,20 @@
-import { mockStores } from '../mocks/stores.mock';
-
+// Removed mockStores import
 function createFallbackStore(item) {
   return {
     id: String(item.externalPlaceId || item.storeId),
     internalStoreId: item.storeId,
     name: item.name,
-    category: '매장',
+    category: item.categoryName || '매장',
     address: item.address,
     contact: item.phone || '전화번호 정보 없음',
     status: item.businessStatus,
     lastStatusUpdate: '서버 반영',
-    businessHours: '영업시간 정보 없음',
-    hasBreakTime: false,
-    breakTime: null,
-    notice: '',
-    rating: null,
+    businessHours: item.openTime && item.closeTime ? `${item.openTime} - ${item.closeTime}` : '영업시간 정보 없음',
+    hasBreakTime: Boolean(item.breakStart),
+    breakTime: item.breakStart && item.breakEnd ? `${item.breakStart} - ${item.breakEnd}` : null,
+    notice: item.ownerNotice || '',
+    rating: item.rating || null,
+    images: item.imageUrls || [],
     favorites: 0,
     lat: Number(item.latitude ?? 37.5665),
     lng: Number(item.longitude ?? 126.9780),
@@ -23,26 +23,12 @@ function createFallbackStore(item) {
 
 export function mapFavoriteStoreItemToPlace(item) {
   const externalPlaceId = String(item.externalPlaceId || item.storeId);
-  const matched = mockStores.find((store) => String(store.id) === externalPlaceId || store.name === item.name);
   const liveStatus = typeof window !== 'undefined'
     ? localStorage.getItem(`storeStatus_${externalPlaceId}`)
     : null;
 
-  if (!matched) {
-    return {
-      ...createFallbackStore(item),
-      status: liveStatus || item.businessStatus,
-    };
-  }
-
   return {
-    ...matched,
-    id: externalPlaceId,
-    internalStoreId: item.storeId,
-    status: liveStatus || matched.status || item.businessStatus,
-    address: item.address || matched.address,
-    contact: item.phone || matched.contact,
-    lat: Number(item.latitude ?? matched.lat),
-    lng: Number(item.longitude ?? matched.lng),
+    ...createFallbackStore(item),
+    status: liveStatus || item.businessStatus,
   };
 }

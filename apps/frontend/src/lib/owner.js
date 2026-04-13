@@ -55,3 +55,11 @@ export async function updateOwnerStoreStatus(storeId, payload) {
     body: payload,
   });
 }
+
+export async function updateOwnerStoreProfile(storeId, payload) {
+  return apiRequest(`/api/v1/owner/stores/${storeId}/profile`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: payload,
+  });
+}

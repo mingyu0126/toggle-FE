@@ -4,11 +4,12 @@ import { Map, MapMarker, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import { 
   Search, Crosshair, Store as StoreIcon, Heart, User, MapPin, List as ListIcon 
 } from 'lucide-react';
-import { mockStores } from '../mocks/stores.mock';
-import { mockPublicInstitutions } from '../mocks/public.mock';
 import { CATEGORIES } from '../constants/status';
 import PlaceCard from '../components/common/PlaceCard';
 import { clearAuthSession, getCurrentUser, isLoggedIn as getIsLoggedIn } from '../lib/session';
+import { useStoreLookupByExternalPlaceId } from '../hooks/useStoreLookupByExternalPlaceId';
+import { useKakaoPlacesWithLookup } from '../hooks/useKakaoPlacesWithLookup';
+import { createSearchPreviewPlace } from '../lib/storePreview';
 import styles from './HomeWeb.module.css';
 
 export default function HomeWeb() {
@@ -19,11 +20,16 @@ export default function HomeWeb() {
   
   // Map control states
   const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
+  const [searchCenter, setSearchCenter] = useState({ lat: 37.5065, lng: 127.0536 }); // 별도 관리되는 탐색 기준 위치
+  const [isMapDragged, setIsMapDragged] = useState(false); // 현 지도에서 검색 노출용
   const [keyword, setKeyword] = useState('');
   const [searchMarkers, setSearchMarkers] = useState([]);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [myLocation, setMyLocation] = useState(null);
+  const selectedExternalPlaceId = selectedPlace?.originalData?.id;
+  const { storeMatch: selectedPlaceStoreMatch, isLoading: isSelectedPlaceLookupLoading } =
+    useStoreLookupByExternalPlaceId(selectedExternalPlaceId);
 
   // Search Suggestions State
   const [suggestions, setSuggestions] = useState([]);
@@ -37,6 +43,11 @@ export default function HomeWeb() {
 
     window.addEventListener('authChanged', syncAuthState);
     return () => window.removeEventListener('authChanged', syncAuthState);
+  }, []);
+
+  // 마운트 시 내 위치 자동 동기화
+  useEffect(() => {
+    handleMyLocation();
   }, []);
 
   // 실시간 연관 검색어 (디바운스 처리)
@@ -127,6 +138,8 @@ export default function HomeWeb() {
         (position) => {
           const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
           setMapCenter(loc);
+          setSearchCenter(loc);
+          setIsMapDragged(false);
           setMyLocation(loc);
         },
         (error) => {
@@ -139,37 +152,19 @@ export default function HomeWeb() {
   };
 
   // Preview data for list
-  const allPlaces = [
-    ...mockStores.map(s => ({ ...s, objType: 'STORE' })),
-    ...mockPublicInstitutions.map(p => ({ ...p, objType: 'CONGESTION' }))
-  ];
+  const { places: nearbyPlaces } = useKakaoPlacesWithLookup(searchCenter, '', activeCategory, { radius: 2000, size: 8 });
 
-  let rawPreviewItems = allPlaces.filter(place => activeCategory === '전체' || place.category === activeCategory);
+  let rawPreviewItems = nearbyPlaces;
 
   // 선택된 카카오 검색 장소가 있다면 최상단에 주입
   if (selectedPlace && selectedPlace.originalData) {
     const kakaoData = selectedPlace.originalData;
-    const existingIndex = rawPreviewItems.findIndex(p => p.name === kakaoData.place_name);
-    
-    if (existingIndex !== -1) {
-      const p = rawPreviewItems[existingIndex];
-      rawPreviewItems = [p, ...rawPreviewItems.filter(item => item.id !== p.id)];
-    } else {
-      const mappedPlace = {
-        id: kakaoData.id || `kakao-${kakaoData.y}-${kakaoData.x}`,
-        name: kakaoData.place_name,
-        category: kakaoData.category_group_name || kakaoData.category_name?.split(' > ').pop() || '기타',
-        status: '검색결과',
-        lastStatusUpdate: '방금',
-        address: kakaoData.road_address_name || kakaoData.address_name,
-        businessHours: kakaoData.phone || '전화번호 미제공',
-        favorites: 0,
-        rating: null,
-        hasBreakTime: false,
-        objType: 'STORE'
-      };
-      rawPreviewItems = [mappedPlace, ...rawPreviewItems];
-    }
+    const mappedPlace = createSearchPreviewPlace(
+      kakaoData,
+      selectedPlaceStoreMatch,
+      isSelectedPlaceLookupLoading
+    );
+    rawPreviewItems = [mappedPlace, ...rawPreviewItems.filter(item => item.id !== mappedPlace.id)];
   }
 
   const previewItems = rawPreviewItems.slice(0, 8); // 데스크톱에서는 조금 더 많이 표시
@@ -289,31 +284,118 @@ export default function HomeWeb() {
 
         {/* 우측 메인 컨텐츠 영역 (지도 + 하단 네비게이션) */}
         <div className={styles.contentArea}>
-          <main className={styles.mapArea}>
+          <main className={styles.mapArea} style={{ position: 'relative' }}>
+            {/* 현 지도에서 검색 버튼 */}
+            {isMapDragged && (
+              <div style={{ position: 'absolute', top: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 200 }}>
+                <button 
+                  onClick={() => {
+                    setSearchCenter(mapCenter);
+                    setIsMapDragged(false);
+                  }}
+                  style={{
+                    background: 'rgba(15, 23, 42, 0.95)',
+                    color: 'white',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    backdropFilter: 'blur(12px)',
+                    padding: '10px 20px',
+                    borderRadius: '24px',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.4)',
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s',
+                  }}
+                  onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+                  onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <Search size={16} />
+                  현 지도에서 검색
+                </button>
+              </div>
+            )}
+
             <Map
               center={mapCenter}
               style={{ width: '100%', height: '100%', borderRadius: '16px' }}
               level={4}
+              onDragEnd={(map) => {
+                const latlng = map.getCenter();
+                setMapCenter({
+                  lat: latlng.getLat(),
+                  lng: latlng.getLng(),
+                });
+                setIsMapDragged(true);
+              }}
               onCreate={() => setIsMapLoaded(true)}
             >
               {/* 리스트 매칭 마커 */}
-              {previewItems.map((item, idx) => {
-                const tempLat = 37.5065 + (idx * 0.002) - 0.001; 
-                const tempLng = 127.0536 + (idx * 0.002) - 0.001;
+              {previewItems.map((item) => {
+                if (!item.lat || !item.lng) return null;
+                
+                const isToggleRegistered = item.status !== 'UNREGISTERED';
+                
+                if (isToggleRegistered) {
+                  return (
+                    <CustomOverlayMap 
+                      key={`preview-${item.id}`} 
+                      position={{ lat: item.lat, lng: item.lng }} 
+                      yAnchor={1} 
+                      zIndex={10}
+                    >
+                      <div 
+                        onClick={() => {
+                          setSelectedPlace({
+                            id: item.id,
+                            position: { lat: item.lat, lng: item.lng },
+                            title: item.name,
+                            status: item.status === 'OPEN' || item.status === '영업중' ? '영업중' : item.status,
+                            color: '#10b981',
+                            originalData: item.originalData
+                          });
+                          setMapCenter({ lat: item.lat, lng: item.lng });
+                        }}
+                        style={{
+                          cursor: 'pointer',
+                          background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                          padding: '4px 10px',
+                          borderRadius: '16px',
+                          color: 'white',
+                          fontWeight: '800',
+                          fontSize: '0.75rem',
+                          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.5)',
+                          border: '2px solid white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          transform: 'translateY(12px)',
+                        }}
+                      >
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />
+                        {item.name.substring(0, 5)}{item.name.length > 5 ? '..' : ''}
+                      </div>
+                    </CustomOverlayMap>
+                  );
+                }
                 return (
                   <MapMarker 
                     key={`preview-${item.id}`} 
-                    position={{ lat: tempLat, lng: tempLng }} 
+                    position={{ lat: item.lat, lng: item.lng }} 
                     title={item.name} 
                     onClick={() => {
                       setSelectedPlace({
                         id: item.id,
-                        position: { lat: tempLat, lng: tempLng },
+                        position: { lat: item.lat, lng: item.lng },
                         title: item.name,
-                        status: '영업중',
-                        color: '#10b981'
+                        status: item.status === 'OPEN' || item.status === '영업중' ? '영업중' : item.status,
+                        color: '#10b981',
+                        originalData: item.originalData
                       });
-                      setMapCenter({ lat: tempLat, lng: tempLng });
+                      setMapCenter({ lat: item.lat, lng: item.lng });
                     }}
                   />
                 );
@@ -358,7 +440,10 @@ export default function HomeWeb() {
                   <div className={styles.markerPlaceholder}>
                     <div 
                       className={styles.markerBaloon} 
-                      onClick={() => navigate(selectedPlace.status === '검색결과' ? `/publicweb/${selectedPlace.id}` : `/storeweb/${selectedPlace.id}`)}
+                      onClick={() => navigate(
+                        selectedPlace.status === '검색결과' ? `/publicweb/${selectedPlace.id}` : `/storeweb/${selectedPlace.id}`, 
+                        { state: { placePreview: selectedPlace.originalData || selectedPlace } }
+                      )}
                       style={{ cursor: 'pointer' }}
                     >
                       <div style={{width: 8, height: 8, background: selectedPlace.color, borderRadius: '50%'}} /> 

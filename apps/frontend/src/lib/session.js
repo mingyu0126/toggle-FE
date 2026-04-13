@@ -162,3 +162,7 @@ export function updateLocalFavorite(type, placeId, favorited) {
 export function updateLocalFavoriteStore(placeId, favorited) {
   return updateLocalFavorite('STORE', placeId, favorited);
 }
+
+export function updateLocalFavoritePublic(placeId, favorited) {
+  return updateLocalFavorite('PUBLIC', placeId, favorited);
+}

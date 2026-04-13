@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Store as StoreIcon, Heart, User, MapPin, List as ListIcon, Search, ChevronDown 
 } from 'lucide-react';
-import { mockStores } from '../mocks/stores.mock';
-import { mockPublicInstitutions } from '../mocks/public.mock';
 import { CATEGORIES } from '../constants/status';
 import PlaceCard from '../components/common/PlaceCard';
+import { useKakaoPlacesWithLookup } from '../hooks/useKakaoPlacesWithLookup';
 import styles from './ListWeb.module.css';
 
 export default function ListWeb() {
@@ -15,19 +14,28 @@ export default function ListWeb() {
   const [sortOrder, setSortOrder] = useState('distance'); // distance, favorites, rating
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
+  const [isLocating, setIsLocating] = useState(true);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setMapCenter({ lat: position.coords.latitude, lng: position.coords.longitude });
+          setIsLocating(false);
+        },
+        () => setIsLocating(false)
+      );
+    } else {
+      setIsLocating(false);
+    }
+  }, []);
+
+  const { places, isLoading: isPlacesLoading } = useKakaoPlacesWithLookup(mapCenter, searchQuery, activeCategory);
+
   const allCategories = ['전체', ...new Set([...CATEGORIES.STORE, ...CATEGORIES.PUBLIC])];
 
-  const allPlaces = [
-    ...mockStores.map(s => ({ ...s, objType: 'STORE' })),
-    ...mockPublicInstitutions.map(p => ({ ...p, objType: 'CONGESTION' }))
-  ];
-
-  const filteredPlaces = allPlaces.filter(place => {
-    const matchesCategory = activeCategory === '전체' || place.category === activeCategory;
-    const matchesSearch = place.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          place.address.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredPlaces = places;
 
   const sortedPlaces = [...filteredPlaces].sort((a, b) => {
     if (sortOrder === 'favorites') return (b.favorites || 0) - (a.favorites || 0);
@@ -117,7 +125,9 @@ export default function ListWeb() {
               </div>
             </div>
 
-            {sortedPlaces.length > 0 ? (
+            {isLocating || isPlacesLoading ? (
+              <div className={styles.emptyState}>장소를 찾는 중입니다...</div>
+            ) : sortedPlaces.length > 0 ? (
               <div className={styles.gridContainer}>
                 {sortedPlaces.map(place => (
                   <PlaceCard 

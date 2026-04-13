@@ -2,23 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, MapPin, Clock, BarChart2, Heart, Navigation, Share2, Map as MapIcon, Image as ImageIcon } from 'lucide-react';
 import { Map, MapMarker } from 'react-kakao-maps-sdk';
-import { mockPublicInstitutions } from '../mocks/public.mock';
 import StatusBadge from '../components/common/StatusBadge';
-import LoginModal from '../components/common/LoginModal'; // 추가
+import LoginModal from '../components/common/LoginModal';
 import { isLoggedIn as getIsLoggedIn } from '../lib/session';
-import styles from './PublicDetail.module.css'; // 전용 CSS 사용
+import { lookupPublicInstitutions } from '../lib/publicInstitutions';
+import styles from './PublicDetail.module.css';
 
 export default function PublicDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [place, setPlace] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
   const [viewMode, setViewMode] = useState('IMAGE'); // 'IMAGE' or 'MAP'
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
 
-  // Sheet drag state (StoreDetail과 동일 레이아웃)
-  const [sheetHeight, setSheetHeight] = useState(55); // 기본 55%
+  // Sheet drag state
+  const [sheetHeight, setSheetHeight] = useState(55);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartY, setDragStartY] = useState(null);
   const [startHeight, setStartHeight] = useState(null);
@@ -68,7 +70,36 @@ export default function PublicDetail() {
     };
   }, [isDragging]);
   
-  const place = mockPublicInstitutions.find(p => p.id === id) || mockPublicInstitutions[0];
+  useEffect(() => {
+    const fetchPlace = async () => {
+      setIsLoading(true);
+      try {
+        const results = await lookupPublicInstitutions('KAKAO', [id]);
+        if (results.length > 0) {
+          const p = results[0];
+          setPlace({
+            ...p,
+            id: p.externalPlaceId,
+            status: p.congestionLevel,
+            category: '공공기관', 
+            address: '주소 정보 없음', 
+            businessHours: p.operatingHours || '정보 없음',
+            estimatedWaitTime: `${p.waitTime || 0}분`,
+            lastStatusUpdate: '서버 반영',
+            hourlyCongestion: [
+              { time: '09시', level: 20 }, { time: '11시', level: 45 }, { time: '13시', level: 85 }, 
+              { time: '15시', level: 60 }, { time: '17시', level: 30 }, { time: '19시', level: 15 }
+            ]
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch public institution:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPlace();
+  }, [id]);
 
   useEffect(() => {
     const syncAuthState = () => {
@@ -110,14 +141,13 @@ export default function PublicDetail() {
     }
   };
 
-  if (!place) return <div>Institution not found</div>;
+  if (isLoading) return <div className={styles.container}><div className={styles.emptyState}>데이터를 불러오는 중입니다...</div></div>;
+  if (!place) return <div className={styles.container}><div className={styles.emptyState}>공공기관을 찾을 수 없습니다.</div></div>;
 
-  // 임시 커버 이미지
   const coverImageUrl = "https://images.unsplash.com/photo-1577985051167-0d49eec21977?auto=format&fit=crop&w=800&q=80";
 
   return (
     <div className={styles.container}>
-      {/* 동적 헤더 */}
       <div className={`${styles.header} ${isScrolled ? styles.headerSolid : ''}`}>
         <button className={styles.backBtn} onClick={() => navigate(-1)}>
           <ChevronLeft size={24} />
@@ -128,7 +158,6 @@ export default function PublicDetail() {
         </button>
       </div>
 
-      {/* 백그라운드 영역 (고정) */}
       <div className={styles.coverArea}>
         {viewMode === 'IMAGE' ? (
           <>
@@ -137,16 +166,15 @@ export default function PublicDetail() {
           </>
         ) : (
           <Map 
-            center={{ lat: place.lat, lng: place.lng }} 
+            center={{ lat: place.lat || 37.5665, lng: place.lng || 126.9780 }} 
             style={{ width: '100%', height: '100%' }} 
             level={3}
           >
-            <MapMarker position={{ lat: place.lat, lng: place.lng }} />
+            <MapMarker position={{ lat: place.lat || 37.5665, lng: place.lng || 126.9780 }} />
           </Map>
         )}
       </div>
 
-      {/* 스크롤/드래그 가능한 바텀 시트 정보 영역 */}
       <div 
         className={styles.contentSheet}
         style={{ 
@@ -154,7 +182,6 @@ export default function PublicDetail() {
           transition: isDragging ? 'none' : 'height 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
       >
-        {/* 드래그 핸들 박스 */}
         <div 
           className={styles.dragWrapper}
           onMouseDown={handleDragStart}
@@ -163,7 +190,6 @@ export default function PublicDetail() {
           <div className={styles.dragHandle} />
         </div>
 
-        {/* 내부 스크롤 가능한 본문 */}
         <div className={styles.scrollArea} onScroll={handleScroll}>
           <div className={styles.contentHeader}>
             <div className={styles.titleRow}>
@@ -200,7 +226,7 @@ export default function PublicDetail() {
                 {place.hourlyCongestion.map((hour, idx) => {
                   let barColor = 'linear-gradient(180deg, var(--color-status-green) 0%, rgba(16, 185, 129, 0.1) 100%)';
                   if (hour.level > 80) {
-                    barColor = 'linear-gradient(180deg, var(--color-status-red) 0%, rgba(2ef, 68, 68, 0.1) 100%)';
+                    barColor = 'linear-gradient(180deg, var(--color-status-red) 0%, rgba(239, 68, 68, 0.1) 100%)';
                   } else if (hour.level > 50) {
                     barColor = 'linear-gradient(180deg, var(--color-status-orange) 0%, rgba(245, 158, 11, 0.1) 100%)';
                   }
@@ -224,7 +250,6 @@ export default function PublicDetail() {
         </div>
       </div>
 
-      {/* 하단 고정 플로팅 바 */}
       <div className={styles.floatingActionBar}>
         <button className={styles.shareBtn} onClick={handleShare}>
           <Share2 size={22} />

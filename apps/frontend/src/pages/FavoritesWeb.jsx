@@ -4,9 +4,9 @@ import { Map, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import {
   Search, Crosshair, Store as StoreIcon, Heart, User, MapPin, List as ListIcon,
 } from 'lucide-react';
-import { mockPublicInstitutions } from '../mocks/public.mock';
 import PlaceCard from '../components/common/PlaceCard';
 import { fetchFavoriteStores } from '../lib/favorites';
+import { lookupPublicInstitutions } from '../lib/publicInstitutions';
 import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
 import { clearAuthSession, getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import styles from './FavoritesWeb.module.css';
@@ -16,6 +16,7 @@ export default function FavoritesWeb() {
   const [activeTab, setActiveTab] = useState('ALL');
   const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
   const [favoriteStores, setFavoriteStores] = useState([]);
+  const [favoritePublics, setFavoritePublics] = useState([]);
   const [favoritePublicIds, setFavoritePublicIds] = useState(() => getLocalFavorites().publics || []);
   const [myLocation, setMyLocation] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
@@ -23,9 +24,10 @@ export default function FavoritesWeb() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const loadFavoriteStores = async () => {
+  const loadFavorites = async () => {
     if (!getIsLoggedIn()) {
       setFavoriteStores([]);
+      setFavoritePublics([]);
       return;
     }
 
@@ -33,17 +35,32 @@ export default function FavoritesWeb() {
     setError('');
 
     try {
-      const items = await fetchFavoriteStores();
-      setFavoriteStores(items.map(mapFavoriteStoreItemToPlace));
+      const [storeItems, latestFavorites] = await Promise.all([
+        fetchFavoriteStores(),
+        Promise.resolve(getLocalFavorites())
+      ]);
+      
+      setFavoriteStores(storeItems.map(mapFavoriteStoreItemToPlace));
+      
+      if (latestFavorites.publics?.length > 0) {
+        const publicItems = await lookupPublicInstitutions('KAKAO', latestFavorites.publics);
+        setFavoritePublics(publicItems.map(p => ({
+          ...p,
+          status: p.congestionLevel,
+          objType: 'PUBLIC',
+        })));
+      } else {
+        setFavoritePublics([]);
+      }
     } catch (loadError) {
-      setError(loadError.message || '저장한 매장을 불러오지 못했습니다.');
+      setError(loadError.message || '저장한 장소를 불러오지 못했습니다.');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadFavoriteStores();
+    loadFavorites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -52,7 +69,7 @@ export default function FavoritesWeb() {
       setIsLoggedIn(getIsLoggedIn());
       setCurrentUser(getCurrentUser());
       setFavoritePublicIds(getLocalFavorites().publics || []);
-      loadFavoriteStores();
+      loadFavorites();
     };
 
     window.addEventListener('favoritesChanged', handleFavoritesChanged);
@@ -64,22 +81,21 @@ export default function FavoritesWeb() {
       setIsLoggedIn(getIsLoggedIn());
       setCurrentUser(getCurrentUser());
       setFavoritePublicIds(getLocalFavorites().publics || []);
-      loadFavoriteStores();
+      loadFavorites();
     };
 
     window.addEventListener('authChanged', syncAuthState);
     return () => window.removeEventListener('authChanged', syncAuthState);
   }, []);
 
-  const favStores = favoriteStores.map((store, index) => ({
+  const favStoresMapped = favoriteStores.map((store, index) => ({
     ...store,
     type: 'STORE',
     position: { lat: Number(store.lat) || 37.5065 + (index * 0.001), lng: Number(store.lng) || 127.0536 + (index * 0.001) },
     color: '#10b981',
   }));
 
-  const favPublics = mockPublicInstitutions
-    .filter((place) => favoritePublicIds.map(String).includes(String(place.id)))
+  const favPublicsMapped = favoritePublics
     .map((place, index) => ({
       ...place,
       type: 'CONGESTION',
@@ -87,7 +103,7 @@ export default function FavoritesWeb() {
       color: '#3b82f6',
     }));
 
-  const allItems = [...favStores, ...favPublics];
+  const allItems = [...favStoresMapped, ...favPublicsMapped];
   const filteredItems = allItems.filter((item) => {
     if (activeTab === 'STORE') return item.type === 'STORE';
     if (activeTab === 'PUBLIC') return item.type === 'CONGESTION';
