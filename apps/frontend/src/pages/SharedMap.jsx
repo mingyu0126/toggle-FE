@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Search, User, Map as MapIcon } from 'lucide-react';
 import PlaceCard from '../components/common/PlaceCard';
 import { lookupStoresByExternalPlaceIds } from '../lib/stores';
-import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
+import { mapStoreToPlace } from '../lib/mappers';
 import styles from './SharedMap.module.css';
 
 export default function SharedMap() {
@@ -32,7 +32,7 @@ export default function SharedMap() {
         
         try {
           const fetched = await lookupStoresByExternalPlaceIds('KAKAO', mockFoundUser.favorites.stores);
-          setSharedStores(fetched.map(mapFavoriteStoreItemToPlace));
+          setSharedStores(fetched.map(mapStoreToPlace));
         } catch (err) {
           console.error(err);
         }

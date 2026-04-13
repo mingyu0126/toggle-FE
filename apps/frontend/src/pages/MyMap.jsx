@@ -8,7 +8,7 @@ import LoginModal from '../components/common/LoginModal'; // 로그인 유도 �
 import { clearAuthSession, getCurrentUser, isLoggedIn as getIsLoggedIn, updateCurrentUser } from '../lib/session';
 import { lookupStoresByExternalPlaceIds } from '../lib/stores';
 import { lookupPublicInstitutions } from '../lib/publicInstitutions';
-import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
+import { mapStoreToPlace, mapPublicToPlace } from '../lib/mappers';
 import styles from './MyMap.module.css';
 
 export default function MyMap() {
@@ -27,7 +27,7 @@ export default function MyMap() {
 
   // 편집 기능용 상태
   const [mapTitle, setMapTitle] = useState(currentUser.mapTitle || `${initialDisplayName}님의 지도`);
-  const [mapDesc, setMapDesc] = useState(currentUser.mapDesc || '우리 동네 찐맛집과 핫플레이스를 모아둔 지도입니다. 📍');
+  const [mapDesc, setMapDesc] = useState(currentUser.mapDesc || '우리 동네 찐맛집과 핫플레이스를  모아둔 지도입니다. 📍');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [profileImage, setProfileImage] = useState(currentUser.profileImage || null);
@@ -82,7 +82,7 @@ export default function MyMap() {
       }
       try {
         const fetched = await lookupStoresByExternalPlaceIds('KAKAO', storeIds);
-        setStores(fetched.map(mapFavoriteStoreItemToPlace));
+        setStores(fetched.map(mapStoreToPlace));
       } catch (err) {
         console.error('Failed to fetch stores:', err);
       }
@@ -99,11 +99,7 @@ export default function MyMap() {
       }
       try {
         const fetched = await lookupPublicInstitutions('KAKAO', publicIds);
-        setPublicInstitutions(fetched.map(p => ({
-          ...p,
-          status: p.congestionLevel,
-          objType: 'PUBLIC',
-        })));
+        setPublicInstitutions(fetched.map(mapPublicToPlace));
       } catch (err) {
         console.error('Failed to fetch public institutions:', err);
       }
@@ -111,32 +107,26 @@ export default function MyMap() {
     fetchPublics();
   }, [myMapPlaces.publics, searchedUser]);
 
-  const favStores = stores;
-  const favPublics = publicInstitutions;
-
-  const currentStores = favStores;
-  const currentPublics = favPublics;
-
-  const filteredStores = currentStores.filter(store => {
+  const filteredStores = stores.filter(store => {
     const passCategory = activeCategory === '전체' || store.category === activeCategory;
     const passOpen = onlyOpen ? store.status === STATUS_TYPES.STORE.OPEN : true;
     return passCategory && passOpen;
   });
 
-  const filteredPublics = currentPublics.filter(pub => {
+  const filteredPublics = publicInstitutions.filter(pub => {
      return activeCategory === '전체' || pub.category === activeCategory;
   });
 
   // 지도 오버레이 핀용 가상 좌표 매핑 (FavoritesWeb 스타일과 동일하게)
   const mappedStores = filteredStores.map((s, idx) => ({
     ...s,
-    position: { lat: 37.5065 + (idx * 0.0012), lng: 127.0536 + (idx * 0.0012) },
+    position: s.lat && s.lng ? { lat: s.lat, lng: s.lng } : { lat: 37.5065 + (idx * 0.0012), lng: 127.0536 + (idx * 0.0012) },
     color: '#10b981'
   }));
 
   const mappedPublics = filteredPublics.map((p, idx) => ({
     ...p,
-    position: { lat: 37.5050 - (idx * 0.0010), lng: 127.0520 + (idx * 0.0010) },
+    position: p.lat && p.lng ? { lat: p.lat, lng: p.lng } : { lat: 37.5050 - (idx * 0.0010), lng: 127.0520 + (idx * 0.0010) },
     color: '#3b82f6'
   }));
 
@@ -186,14 +176,14 @@ export default function MyMap() {
     const key = type === 'STORE' ? 'stores' : 'publics';
     
     // 중복 체크
-    if (myMapPlaces[key] && myMapPlaces[key].includes(itemId)) {
+    if (myMapPlaces[key] && myMapPlaces[key].includes(String(itemId))) {
       alert('이미 저장된 장소입니다.');
       return;
     }
 
     const updatedMyMap = { ...myMapPlaces };
     if (!updatedMyMap[key]) updatedMyMap[key] = [];
-    updatedMyMap[key].push(itemId);
+    updatedMyMap[key].push(String(itemId));
 
     setMyMapPlaces(updatedMyMap);
     updateCurrentUserFields({ myMap: updatedMyMap });
@@ -203,7 +193,7 @@ export default function MyMap() {
   const handleDeleteFromMyMap = (itemId, type) => {
     const key = type === 'STORE' ? 'stores' : 'publics';
     const updatedMyMap = { ...myMapPlaces };
-    updatedMyMap[key] = updatedMyMap[key].filter(id => id !== itemId);
+    updatedMyMap[key] = updatedMyMap[key].filter(id => String(id) !== String(itemId));
 
     setMyMapPlaces(updatedMyMap);
     updateCurrentUserFields({ myMap: updatedMyMap });
@@ -364,8 +354,8 @@ export default function MyMap() {
            <>
         {/* 대분류 탭 분기 */}
         <div className={styles.mainTabs}>
-            <button className={`${styles.mainTab} ${activeTab === 'STORE' ? styles.active : ''}`} onClick={() => setActiveTab('STORE')}>매장 ({currentStores.length})</button>
-            <button className={`${styles.mainTab} ${activeTab === 'PUBLIC' ? styles.active : ''}`} onClick={() => setActiveTab('PUBLIC')}>공공기관 ({currentPublics.length})</button>
+            <button className={`${styles.mainTab} ${activeTab === 'STORE' ? styles.active : ''}`} onClick={() => setActiveTab('STORE')}>매장 ({stores.length})</button>
+            <button className={`${styles.mainTab} ${activeTab === 'PUBLIC' ? styles.active : ''}`} onClick={() => setActiveTab('PUBLIC')}>공공기관 ({publicInstitutions.length})</button>
         </div>
 
         {/* 카테고리 필터 */}
@@ -424,7 +414,7 @@ export default function MyMap() {
         ) : (
           <div className={styles.mapContainer}>
             <Map
-              center={{ lat: 37.5060, lng: 127.0530 }}
+              center={mapCenter.lat ? mapCenter : { lat: 37.5060, lng: 127.0530 }}
               style={{ width: '100%', height: '100%', borderRadius: '16px' }}
               level={5}
             >
@@ -451,7 +441,7 @@ export default function MyMap() {
         ) : (
           <div className={styles.emptyState} style={{ marginTop: '3rem' }}>
              <Heart size={40} opacity={0.3} />
-             <p style={{ marginTop: '0.5rem', color: '#94a3b8' }}>로그인 후 지도 상세 목록을 확인할 수 있습니다.</p>
+             <p style={{ marginTop: '0.5rem', color: '#94a3b8' }}>로그인 후 지도 상세 목록을 확인 할 수 있습니다.</p>
           </div>
         )}
       </div>

@@ -7,7 +7,7 @@ import {
 import PlaceCard from '../components/common/PlaceCard';
 import { fetchFavoriteStores } from '../lib/favorites';
 import { lookupPublicInstitutions } from '../lib/publicInstitutions';
-import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
+import { mapStoreToPlace, mapPublicToPlace } from '../lib/mappers';
 import { clearAuthSession, getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import styles from './FavoritesWeb.module.css';
 
@@ -36,24 +36,28 @@ export default function FavoritesWeb() {
 
     try {
       const [storeItems, latestFavorites] = await Promise.all([
-        fetchFavoriteStores(),
+        fetchFavoriteStores().catch(err => {
+          console.error('Stores load failed:', err);
+          return [];
+        }),
         Promise.resolve(getLocalFavorites())
       ]);
       
-      setFavoriteStores(storeItems.map(mapFavoriteStoreItemToPlace));
+      setFavoriteStores(storeItems.map(mapStoreToPlace));
       
       if (latestFavorites.publics?.length > 0) {
-        const publicItems = await lookupPublicInstitutions('KAKAO', latestFavorites.publics);
-        setFavoritePublics(publicItems.map(p => ({
-          ...p,
-          status: p.congestionLevel,
-          objType: 'PUBLIC',
-        })));
+        try {
+          const publicItems = await lookupPublicInstitutions('KAKAO', latestFavorites.publics);
+          setFavoritePublics(publicItems.map(mapPublicToPlace));
+        } catch (err) {
+          console.error('Publics load failed:', err);
+          setFavoritePublics([]);
+        }
       } else {
         setFavoritePublics([]);
       }
     } catch (loadError) {
-      setError(loadError.message || '저장한 장소를 불러오지 못했습니다.');
+      setError('장소를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +103,7 @@ export default function FavoritesWeb() {
     .map((place, index) => ({
       ...place,
       type: 'CONGESTION',
-      position: { lat: 37.5050 - (index * 0.001), lng: 127.0520 + (index * 0.001) },
+      position: { lat: Number(place.lat) || 37.5050 - (index * 0.001), lng: Number(place.lng) || 127.0520 + (index * 0.001) },
       color: '#3b82f6',
     }));
 
@@ -173,7 +177,7 @@ export default function FavoritesWeb() {
           <div className={styles.sidebarHeader}>
             <div className={styles.sidebarTitleWrap}>
               <h1 className={styles.sidebarTitle}>저장한 장소</h1>
-              <p className={styles.sidebarSubtitle}>서버에 저장된 매장 즐겨찾기와 로컬 공공기관 저장 목록을 함께 보여줍니다.</p>
+              <p className={styles.sidebarSubtitle}>서버에 저장된 매장 즐겨찾기와 공공기관 저장 목록을 함께 보여줍니다.</p>
             </div>
           </div>
 
@@ -184,7 +188,7 @@ export default function FavoritesWeb() {
           </div>
 
           <div className={styles.placeList}>
-            {!isLoggedIn && <div className={styles.emptyState}>로그인 후 저장한 장소를 확인할 수 있습니다.</div>}
+            {!isLoggedIn && <div className={styles.emptyState}>로그인 후 저장한 장소를 확인할 수  있습니다.</div>}
             {isLoggedIn && isLoading && <div className={styles.emptyState}>저장한 장소를 불러오는 중입니다.</div>}
             {isLoggedIn && !isLoading && error && <div className={styles.emptyState}>{error}</div>}
             {isLoggedIn && !isLoading && !error && filteredItems.length === 0 && (

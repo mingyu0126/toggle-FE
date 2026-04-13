@@ -11,7 +11,7 @@ import { addFavoriteStore, removeFavoriteStore } from '../lib/favorites';
 import { clearAuthSession, getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import { getStoreLiveStatus, getStoreOperatingInfoByCandidates } from '../lib/storeRuntime';
 import { useStoreLookupByExternalPlaceId } from '../hooks/useStoreLookupByExternalPlaceId';
-import { mergeLookupStoreIntoDetail } from '../lib/storePreview';
+import { mapStoreToPlace } from '../lib/mappers';
 import styles from './StoreWeb.module.css';
 
 export default function StoreWeb() {
@@ -19,20 +19,26 @@ export default function StoreWeb() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // mock data lookup
   const previewStore = location.state?.placePreview || null;
   const { storeMatch, isLoading: isLookupLoading } = useStoreLookupByExternalPlaceId(id);
-  const baseStore = mergeLookupStoreIntoDetail(previewStore, storeMatch);
-  const runtimeStoreId = baseStore.internalStoreId ?? baseStore.id;
+  
+  // 통합 매퍼 사용
+  const baseStore = storeMatch ? mapStoreToPlace(storeMatch) : previewStore;
+  const runtimeStoreId = baseStore?.internalStoreId ?? baseStore?.id ?? id;
   const operatingInfo = getStoreOperatingInfoByCandidates([runtimeStoreId, id]);
-  const mergedStore = mergeLookupStoreIntoDetail(previewStore, storeMatch, operatingInfo);
-  const store = {
-    ...mergedStore,
-    status: getStoreLiveStatus(runtimeStoreId, mergedStore.status),
-  };
-  const ownerComment = store.ownerNotice || '';
-  const ownerImages = store.ownerImages || [];
-  const [isFavorite, setIsFavorite] = useState(() => getLocalFavorites().stores.map(String).includes(String(store.id)));
+  
+  const mergedStore = baseStore ? {
+    ...baseStore,
+    businessHours: operatingInfo ? `${operatingInfo.openTime} - ${operatingInfo.closeTime}` : baseStore.businessHours,
+    hasBreakTime: operatingInfo ? true : baseStore.hasBreakTime,
+    breakTime: operatingInfo ? `${operatingInfo.breakStart} - ${operatingInfo.breakEnd}` : baseStore.breakTime,
+    status: getStoreLiveStatus(runtimeStoreId, baseStore.status),
+  } : null;
+
+  const store = mergedStore;
+  const ownerComment = store?.ownerNotice || '';
+  const ownerImages = store?.ownerImages || [];
+  const [isFavorite, setIsFavorite] = useState(() => store ? getLocalFavorites().stores.map(String).includes(String(store.id)) : false);
   const [isFavoriteSubmitting, setIsFavoriteSubmitting] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
   const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
@@ -57,20 +63,21 @@ export default function StoreWeb() {
     if (store && store.lat && store.lng) {
       setMapCenter({ lat: store.lat, lng: store.lng });
     } else {
-      // 위치 데이터가 mock에 없을 경우 임시 위치
       setMapCenter({ lat: 37.5065, lng: 127.0536 });
     }
   }, [store?.lat, store?.lng]);
 
   useEffect(() => {
     const syncFavoriteState = () => {
-      setIsFavorite(getLocalFavorites().stores.map(String).includes(String(store.id)));
+      if (store) {
+        setIsFavorite(getLocalFavorites().stores.map(String).includes(String(store.id)));
+      }
     };
 
     syncFavoriteState();
     window.addEventListener('favoritesChanged', syncFavoriteState);
     return () => window.removeEventListener('favoritesChanged', syncFavoriteState);
-  }, [store.id]);
+  }, [store?.id]);
 
   useEffect(() => {
     const syncAuthState = () => {
@@ -91,6 +98,7 @@ export default function StoreWeb() {
   };
 
   const handleShare = () => {
+    if (!store) return;
     const shareData = {
       title: store.name,
       text: `[Toggle] ${store.name} (${store.category}) 현재 상태를 확인해 보세요!`,
@@ -111,7 +119,7 @@ export default function StoreWeb() {
       return;
     }
 
-    if (isFavoriteSubmitting) {
+    if (isFavoriteSubmitting || !store) {
       return;
     }
 

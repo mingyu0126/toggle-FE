@@ -9,7 +9,7 @@ import PlaceCard from '../components/common/PlaceCard';
 import { clearAuthSession, getCurrentUser, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import { useStoreLookupByExternalPlaceId } from '../hooks/useStoreLookupByExternalPlaceId';
 import { useKakaoPlacesWithLookup } from '../hooks/useKakaoPlacesWithLookup';
-import { createSearchPreviewPlace } from '../lib/storePreview';
+import { createMergedPreviewPlace } from '../lib/mappers';
 import styles from './HomeWeb.module.css';
 
 export default function HomeWeb() {
@@ -20,7 +20,7 @@ export default function HomeWeb() {
   
   // Map control states
   const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
-  const [searchCenter, setSearchCenter] = useState({ lat: 37.5065, lng: 127.0536 }); // 별도 관리되는 탐색 기준 위치
+  const [searchCenter, setSearchCenter] = useState({ lat: 37.5065, lng: 127.0536 }); // 별도 관리 되는 탐색 기준 위치
   const [isMapDragged, setIsMapDragged] = useState(false); // 현 지도에서 검색 노출용
   const [keyword, setKeyword] = useState('');
   const [searchMarkers, setSearchMarkers] = useState([]);
@@ -159,9 +159,10 @@ export default function HomeWeb() {
   // 선택된 카카오 검색 장소가 있다면 최상단에 주입
   if (selectedPlace && selectedPlace.originalData) {
     const kakaoData = selectedPlace.originalData;
-    const mappedPlace = createSearchPreviewPlace(
+    const mappedPlace = createMergedPreviewPlace(
       kakaoData,
       selectedPlaceStoreMatch,
+      null, // matchedPublic
       isSelectedPlaceLookupLoading
     );
     rawPreviewItems = [mappedPlace, ...rawPreviewItems.filter(item => item.id !== mappedPlace.id)];
@@ -274,8 +275,12 @@ export default function HomeWeb() {
                 <PlaceCard 
                   key={item.id} 
                   place={item} 
-                  type={item.status === 'RELAXED' || item.status === 'NORMAL' || item.status === 'BUSY' || item.status === 'VERY_BUSY' ? 'CONGESTION' : 'STORE'} 
+                  type={item.objType === 'PUBLIC' ? 'CONGESTION' : 'STORE'} 
                   isWeb={true}
+                  onClick={() => {
+                    const detailPath = item.objType === 'PUBLIC' ? `/publicweb/${item.id}` : `/storeweb/${item.id}`;
+                    navigate(detailPath, { state: { placePreview: item } });
+                  }}
                 />
               ))}
             </div>
@@ -354,20 +359,20 @@ export default function HomeWeb() {
                             position: { lat: item.lat, lng: item.lng },
                             title: item.name,
                             status: item.status === 'OPEN' || item.status === '영업중' ? '영업중' : item.status,
-                            color: '#10b981',
+                            color: item.objType === 'PUBLIC' ? '#3b82f6' : '#10b981',
                             originalData: item.originalData
                           });
                           setMapCenter({ lat: item.lat, lng: item.lng });
                         }}
                         style={{
                           cursor: 'pointer',
-                          background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                          background: item.objType === 'PUBLIC' ? 'linear-gradient(135deg, #3b82f6, #6366f1)' : 'linear-gradient(135deg, #10b981, #059669)',
                           padding: '4px 10px',
                           borderRadius: '16px',
                           color: 'white',
                           fontWeight: '800',
                           fontSize: '0.75rem',
-                          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.5)',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
                           border: '2px solid white',
                           display: 'flex',
                           alignItems: 'center',

@@ -9,7 +9,7 @@ import PlaceCard from '../components/common/PlaceCard';
 import { clearAuthSession, getCurrentUser, isLoggedIn as getIsLoggedIn, updateCurrentUser } from '../lib/session';
 import { lookupStoresByExternalPlaceIds } from '../lib/stores';
 import { lookupPublicInstitutions } from '../lib/publicInstitutions';
-import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
+import { mapStoreToPlace, mapPublicToPlace } from '../lib/mappers';
 import styles from './MyMapWeb.module.css';
 
 export default function MyMapWeb() {
@@ -69,7 +69,7 @@ export default function MyMapWeb() {
       }
       try {
         const fetched = await lookupStoresByExternalPlaceIds('KAKAO', storeIds);
-        setStores(fetched.map(mapFavoriteStoreItemToPlace));
+        setStores(fetched.map(mapStoreToPlace));
       } catch (err) {
         console.error('Failed to fetch stores:', err);
       }
@@ -86,11 +86,7 @@ export default function MyMapWeb() {
       }
       try {
         const fetched = await lookupPublicInstitutions('KAKAO', publicIds);
-        setPublicInstitutions(fetched.map(p => ({
-          ...p,
-          status: p.congestionLevel,
-          objType: 'PUBLIC',
-        })));
+        setPublicInstitutions(fetched.map(mapPublicToPlace));
       } catch (err) {
         console.error('Failed to fetch public institutions:', err);
       }
@@ -98,34 +94,29 @@ export default function MyMapWeb() {
     fetchPublics();
   }, [myMapPlaces.publics, searchedUser]);
 
-  const favStores = stores;
-  const favPublics = publicInstitutions;
-
-  const currentStores = favStores;
-  const currentPublics = favPublics;
-
-  const mappedStores = currentStores.map((store, idx) => ({
-    ...store,
-    type: 'STORE',
-    position: { lat: 37.5065 + (idx * 0.0012), lng: 127.0536 + (idx * 0.0012) },
-    color: '#10b981',
-  }));
-
-  const mappedPublics = currentPublics.map((place, idx) => ({
-    ...place,
-    type: 'CONGESTION',
-    position: { lat: 37.5050 - (idx * 0.0010), lng: 127.0520 + (idx * 0.0010) },
-    color: '#3b82f6',
-  }));
-
-  const filteredStores = mappedStores.filter((store) => {
+  const filteredStores = stores.filter((store) => {
     const passCategory = activeCategory === '전체' || store.category === activeCategory;
     const passOpen = onlyOpen ? store.status === STATUS_TYPES.STORE.OPEN : true;
     return passCategory && passOpen;
   });
 
-  const filteredPublics = mappedPublics.filter((place) => activeCategory === '전체' || place.category === activeCategory);
-  const allFilteredItems = activeTab === 'STORE' ? filteredStores : filteredPublics;
+  const filteredPublics = publicInstitutions.filter((place) => activeCategory === '전체' || place.category === activeCategory);
+
+  const mappedStores = filteredStores.map((store, idx) => ({
+    ...store,
+    type: 'STORE',
+    position: store.lat && store.lng ? { lat: store.lat, lng: store.lng } : { lat: 37.5065 + (idx * 0.0012), lng: 127.0536 + (idx * 0.0012) },
+    color: '#10b981',
+  }));
+
+  const mappedPublics = filteredPublics.map((place, idx) => ({
+    ...place,
+    type: 'CONGESTION',
+    position: place.lat && place.lng ? { lat: place.lat, lng: place.lng } : { lat: 37.5050 - (idx * 0.0010), lng: 127.0520 + (idx * 0.0010) },
+    color: '#3b82f6',
+  }));
+
+  const allFilteredItems = activeTab === 'STORE' ? mappedStores : mappedPublics;
 
   const handleSearchUser = (e) => {
     e.preventDefault();
@@ -299,7 +290,7 @@ export default function MyMapWeb() {
 
             <div className={styles.statsRow}>
               <div className={styles.statBox}>
-                <strong>{currentStores.length + currentPublics.length}</strong>
+                <strong>{stores.length + publicInstitutions.length}</strong>
                 <span>총 저장 장소</span>
               </div>
               <div className={styles.statBox}>
@@ -310,8 +301,8 @@ export default function MyMapWeb() {
           </div>
 
           <div className={styles.mainTabs}>
-            <button className={`${styles.mainTab} ${activeTab === 'STORE' ? styles.active : ''}`} onClick={() => setActiveTab('STORE')}>매장 ({currentStores.length})</button>
-            <button className={`${styles.mainTab} ${activeTab === 'PUBLIC' ? styles.active : ''}`} onClick={() => setActiveTab('PUBLIC')}>공공기관 ({currentPublics.length})</button>
+            <button className={`${styles.mainTab} ${activeTab === 'STORE' ? styles.active : ''}`} onClick={() => setActiveTab('STORE')}>매장 ({stores.length})</button>
+            <button className={`${styles.mainTab} ${activeTab === 'PUBLIC' ? styles.active : ''}`} onClick={() => setActiveTab('PUBLIC')}>공공기관 ({publicInstitutions.length})</button>
           </div>
 
           <div className={styles.filterBar}>
@@ -334,7 +325,9 @@ export default function MyMapWeb() {
                     key={`${item.type}-${item.id}`}
                     className={styles.cardItem}
                     onClick={() => {
-                      setMapCenter(item.position);
+                      if (item.lat && item.lng) {
+                        setMapCenter({ lat: item.lat, lng: item.lng });
+                      }
                       setSelectedPlace(item);
                     }}
                     style={{ position: 'relative' }}

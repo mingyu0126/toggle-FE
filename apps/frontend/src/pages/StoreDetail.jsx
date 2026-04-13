@@ -9,7 +9,7 @@ import { addFavoriteStore, removeFavoriteStore } from '../lib/favorites';
 import { getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
 import { getStoreLiveStatus, getStoreOperatingInfoByCandidates } from '../lib/storeRuntime';
 import { useStoreLookupByExternalPlaceId } from '../hooks/useStoreLookupByExternalPlaceId';
-import { mergeLookupStoreIntoDetail } from '../lib/storePreview';
+import { mapStoreToPlace } from '../lib/mappers';
 import styles from './StoreDetail.module.css';
 
 export default function StoreDetail() {
@@ -24,13 +24,23 @@ export default function StoreDetail() {
   const isLoggedIn = getIsLoggedIn();
   const previewStore = location.state?.placePreview || null;
   const { storeMatch, isLoading: isLookupLoading } = useStoreLookupByExternalPlaceId(id);
-  const baseStore = mergeLookupStoreIntoDetail(previewStore, storeMatch);
-  const runtimeStoreId = baseStore.internalStoreId ?? baseStore.id;
+  
+  // 통합 매퍼 사용
+  const baseStore = storeMatch ? mapStoreToPlace(storeMatch) : previewStore;
+  const runtimeStoreId = baseStore?.internalStoreId ?? baseStore?.id ?? id;
   const operatingInfo = getStoreOperatingInfoByCandidates([runtimeStoreId, id]);
-  const mergedStore = mergeLookupStoreIntoDetail(previewStore, storeMatch, operatingInfo);
-  const ownerComment = mergedStore.ownerNotice || '';
-  const ownerImages = mergedStore.ownerImages || [];
-  const [isFavorite, setIsFavorite] = useState(() => getLocalFavorites().stores.map(String).includes(String(mergedStore.id)));
+  
+  // 운영 정보 병합 (수동 병합 - 통합 매퍼에 포함되지 않은 런타임 로직)
+  const mergedStore = baseStore ? {
+    ...baseStore,
+    businessHours: operatingInfo ? `${operatingInfo.openTime} - ${operatingInfo.closeTime}` : baseStore.businessHours,
+    hasBreakTime: operatingInfo ? true : baseStore.hasBreakTime,
+    breakTime: operatingInfo ? `${operatingInfo.breakStart} - ${operatingInfo.breakEnd}` : baseStore.breakTime,
+  } : null;
+
+  const ownerComment = mergedStore?.ownerNotice || '';
+  const ownerImages = mergedStore?.ownerImages || [];
+  const [isFavorite, setIsFavorite] = useState(() => mergedStore ? getLocalFavorites().stores.map(String).includes(String(mergedStore.id)) : false);
 
   // Sheet drag state (Home.jsx와 동일한 100% 레이아웃 형태 복귀)
   const [sheetHeight, setSheetHeight] = useState(55); // 기본 55%
@@ -86,22 +96,20 @@ export default function StoreDetail() {
   }, [isDragging]);
   
   // mock data lookup
-  const liveStatus = getStoreLiveStatus(runtimeStoreId, mergedStore.status);
-  const store = { ...mergedStore, status: liveStatus }; 
-
-  useEffect(() => {
-    // 이제 window 스크롤이 아니라 내부 scrollArea div 스크롤을 감지합니다.
-  }, []);
+  const liveStatus = mergedStore ? getStoreLiveStatus(runtimeStoreId, mergedStore.status) : 'UNKNOWN';
+  const store = mergedStore ? { ...mergedStore, status: liveStatus } : null; 
 
   useEffect(() => {
     const syncFavoriteState = () => {
-      setIsFavorite(getLocalFavorites().stores.map(String).includes(String(mergedStore.id)));
+      if (mergedStore) {
+        setIsFavorite(getLocalFavorites().stores.map(String).includes(String(mergedStore.id)));
+      }
     };
 
     syncFavoriteState();
     window.addEventListener('favoritesChanged', syncFavoriteState);
     return () => window.removeEventListener('favoritesChanged', syncFavoriteState);
-  }, [mergedStore.id]);
+  }, [mergedStore?.id]);
 
   const handleScroll = (e) => {
     if (e.target.scrollTop > 50) {
@@ -120,6 +128,7 @@ export default function StoreDetail() {
   };
 
   const handleShare = () => {
+    if (!store) return;
     const shareData = {
       title: store.name,
       text: `[Toggle] ${store.name} (${store.category}) 현재 상태를 확인해 보세요!`,
@@ -140,7 +149,7 @@ export default function StoreDetail() {
       return;
     }
 
-    if (isFavoriteSubmitting) {
+    if (isFavoriteSubmitting || !store) {
       return;
     }
 
