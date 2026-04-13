@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { lookupStoresByExternalPlaceIds } from '../lib/stores';
 import { lookupPublicInstitutions } from '../lib/publicInstitutions';
-import { createSearchPreviewPlace } from '../lib/storePreview';
+import { createMergedPreviewPlace } from '../lib/mappers';
 
 // 카카오 카테고리 매핑 테이블
 const KAKAO_CATEGORY_MAP = {
@@ -72,30 +72,7 @@ export function useKakaoPlacesWithLookup(center, keyword, category, options = { 
             const storeMatch = matchedStores.find(s => s.externalPlaceId === kakaoItem.id);
             const publicMatch = matchedPublics.find(p => p.externalPlaceId === kakaoItem.id);
             
-            let previewPlace = createSearchPreviewPlace(kakaoItem, storeMatch, false);
-            
-            if (publicMatch) {
-              previewPlace = {
-                ...previewPlace,
-                id: publicMatch.externalPlaceId,
-                internalId: publicMatch.id,
-                status: publicMatch.congestionLevel,
-                waitTime: publicMatch.waitTime,
-                operatingHours: publicMatch.operatingHours,
-                objType: 'PUBLIC',
-                // 실제 주소 및 좌표 동기화 (lookup에서 보강됨)
-                address: publicMatch.address || previewPlace.address,
-                lat: publicMatch.latitude || previewPlace.lat,
-                lng: publicMatch.longitude || previewPlace.lng
-              };
-            }
-
-            // 거리 정보 추가 (리스트 정렬/표시용)
-            return {
-              ...previewPlace,
-              distance: kakaoItem.distance ? Number(kakaoItem.distance) : 0,
-              originalData: kakaoItem // 필요한 경우 원본 유지
-            };
+            return createMergedPreviewPlace(kakaoItem, storeMatch, publicMatch, false);
           });
 
           // 내부 카테고리 필터링 (가벼운 프론트엔드 필터)
@@ -107,7 +84,7 @@ export function useKakaoPlacesWithLookup(center, keyword, category, options = { 
           setPlaces(finalFiltered);
         } catch (error) {
           console.error("Lookup failed:", error);
-          if (!cancelled) setPlaces(data.map(item => createSearchPreviewPlace(item, null, false)));
+          if (!cancelled) setPlaces(data.map(item => createMergedPreviewPlace(item, null, null, false)));
         }
       } else {
         if (!cancelled) setPlaces([]);

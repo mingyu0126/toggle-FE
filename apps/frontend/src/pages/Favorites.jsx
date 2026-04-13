@@ -4,7 +4,7 @@ import { ChevronLeft, Heart, Store, Users, User, MapPin, List as ListIcon } from
 import PlaceCard from '../components/common/PlaceCard';
 import { fetchFavoriteStores } from '../lib/favorites';
 import { lookupPublicInstitutions } from '../lib/publicInstitutions';
-import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
+import { mapStoreToPlace, mapPublicToPlace } from '../lib/mappers';
 import { getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn, updateCurrentUser } from '../lib/session';
 import styles from './Favorites.module.css';
 
@@ -14,7 +14,6 @@ export default function Favorites() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
   const [favoriteStores, setFavoriteStores] = useState([]);
   const [favoritePublics, setFavoritePublics] = useState([]);
-  const [favoritePublicIds, setFavoritePublicIds] = useState(() => getLocalFavorites().publics || []);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,24 +29,28 @@ export default function Favorites() {
 
     try {
       const [storeItems, latestFavorites] = await Promise.all([
-        fetchFavoriteStores(),
-        Promise.resolve(getLocalFavorites()) // publics IDs are already in user profile from /me
+        fetchFavoriteStores().catch(err => {
+          console.error('Stores load failed:', err);
+          return []; // 부분 실패 허용
+        }),
+        Promise.resolve(getLocalFavorites())
       ]);
       
-      setFavoriteStores(storeItems.map(mapFavoriteStoreItemToPlace));
+      setFavoriteStores(storeItems.map(mapStoreToPlace));
       
       if (latestFavorites.publics?.length > 0) {
-        const publicItems = await lookupPublicInstitutions('KAKAO', latestFavorites.publics);
-        setFavoritePublics(publicItems.map(p => ({
-          ...p,
-          status: p.congestionLevel,
-          objType: 'PUBLIC',
-        })));
+        try {
+          const publicItems = await lookupPublicInstitutions('KAKAO', latestFavorites.publics);
+          setFavoritePublics(publicItems.map(mapPublicToPlace));
+        } catch (err) {
+          console.error('Publics load failed:', err);
+          setFavoritePublics([]);
+        }
       } else {
         setFavoritePublics([]);
       }
     } catch (loadError) {
-      setError(loadError.message || '저장한 장소를 불러오지 못했습니다.');
+      setError('장소를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +64,6 @@ export default function Favorites() {
   useEffect(() => {
     const handleFavoritesChanged = () => {
       setIsLoggedIn(getIsLoggedIn());
-      setFavoritePublicIds(getLocalFavorites().publics || []);
       loadFavorites();
     };
 
@@ -69,8 +71,7 @@ export default function Favorites() {
     return () => window.removeEventListener('favoritesChanged', handleFavoritesChanged);
   }, []);
 
-  const favPublics = favoritePublics;
-  const totalCount = favoriteStores.length + favPublics.length;
+  const totalCount = favoriteStores.length + favoritePublics.length;
 
   const handleAddToMyMap = (itemId, type) => {
     const latestUser = getCurrentUser();
@@ -114,7 +115,7 @@ export default function Favorites() {
             매장 {isLoggedIn ? `(${favoriteStores.length})` : ''}
           </button>
           <button className={`${styles.tab} ${activeTab === 'PUBLIC' ? styles.active : ''}`} onClick={() => setActiveTab('PUBLIC')}>
-            공공기관 {isLoggedIn ? `(${favPublics.length})` : ''}
+            공공기관 {isLoggedIn ? `(${favoritePublics.length})` : ''}
           </button>
         </div>
       </div>
@@ -133,7 +134,7 @@ export default function Favorites() {
           </div>
         ) : (
           <>
-            {isLoading && <div className={styles.emptyState}><p>저장한 매장을 불러오는 중입니다.</p></div>}
+            {isLoading && <div className={styles.emptyState}><p>저장한 장소를 불러오는 중입니다...</p></div>}
             {!isLoading && error && <div className={styles.emptyState}><p>{error}</p></div>}
 
             {!isLoading && !error && showStoreSection && favoriteStores.length > 0 && (
@@ -144,7 +145,7 @@ export default function Favorites() {
                 </div>
                 <div className={styles.grid}>
                   {favoriteStores.map((store) => (
-                    <div key={store.internalStoreId || store.id} style={{ position: 'relative' }}>
+                    <div key={store.id} style={{ position: 'relative' }}>
                       <PlaceCard place={store} type="STORE" />
                       <button className={styles.myMapBtn} onClick={() => handleAddToMyMap(store.id, 'STORE')}>
                         내 지도에 추가
@@ -152,17 +153,17 @@ export default function Favorites() {
                     </div>
                   ))}
                 </div>
-              </section>
+              </section> section
             )}
 
-            {!isLoading && !error && showPublicSection && favPublics.length > 0 && (
+            {!isLoading && !error && showPublicSection && favoritePublics.length > 0 && (
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <Users size={18} className={styles.iconPublic} />
                   <h2 className={styles.sectionTitle}>저장한 공공기관</h2>
                 </div>
                 <div className={styles.grid}>
-                  {favPublics.map((place) => (
+                  {favoritePublics.map((place) => (
                     <div key={place.id} style={{ position: 'relative' }}>
                       <PlaceCard place={place} type="CONGESTION" />
                       <button className={styles.myMapBtn} onClick={() => handleAddToMyMap(place.id, 'PUBLIC')}>
@@ -177,7 +178,7 @@ export default function Favorites() {
             {!isLoading && !error && (
               ((activeTab === 'ALL' && totalCount === 0) ||
               (activeTab === 'STORE' && favoriteStores.length === 0) ||
-              (activeTab === 'PUBLIC' && favPublics.length === 0))
+              (activeTab === 'PUBLIC' && favoritePublics.length === 0))
             ) && (
               <div className={styles.emptyState}>
                 <div className={styles.emptyIcon}>

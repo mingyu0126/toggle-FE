@@ -1,0 +1,113 @@
+import { STATUS_TYPES } from '../constants/status';
+
+/**
+ * 백엔드 스토어 DTO를 프론트엔드 장소 객체로 변환하는 통합 매퍼
+ */
+export function mapStoreToPlace(item) {
+  if (!item) return null;
+
+  return {
+    id: String(item.externalPlaceId || item.storeId),
+    internalStoreId: item.storeId,
+    name: item.name,
+    category: item.categoryName || '매장',
+    address: item.address,
+    roadAddress: item.roadAddress,
+    jibunAddress: item.jibunAddress,
+    contact: item.phone || '전화번호 정보 없음',
+    status: item.liveBusinessStatus || item.businessStatus,
+    lastStatusUpdate: '서버 반영',
+    businessHours: item.openTime && item.closeTime ? `${item.openTime} - ${item.closeTime}` : '영업시간 정보 없음',
+    hasBreakTime: Boolean(item.breakStart),
+    breakTime: item.breakStart && item.breakEnd ? `${item.breakStart} - ${item.breakEnd}` : null,
+    notice: item.ownerNotice || '',
+    rating: item.rating || null,
+    images: item.imageUrls || [],
+    ownerNotice: item.ownerNotice || '',
+    ownerImages: item.imageUrls || [],
+    lat: Number(item.latitude ?? 37.5665),
+    lng: Number(item.longitude ?? 126.9780),
+    objType: 'STORE',
+    verified: item.verified,
+    verifiedAt: item.verifiedAt,
+  };
+}
+
+/**
+ * 백엔드 공공기관 DTO를 프론트엔드 장소 객체로 변환하는 통합 매퍼
+ */
+export function mapPublicToPlace(item) {
+  if (!item) return null;
+
+  return {
+    ...item,
+    id: item.externalPlaceId,
+    internalId: item.id,
+    name: item.name,
+    category: '공공기관',
+    address: item.address || '주소 정보 없음',
+    status: item.congestionLevel,
+    lastStatusUpdate: '서버 반영',
+    businessHours: item.operatingHours || '정보 없음',
+    estimatedWaitTime: item.waitTime ? `${item.waitTime}분` : '0분',
+    lat: Number(item.latitude ?? 37.5665),
+    lng: Number(item.longitude ?? 126.9780),
+    objType: 'PUBLIC',
+    // UI 호환성을 위한 목업 데이터 (필요 시 백엔드 확장)
+    hourlyCongestion: [
+      { time: '09시', level: 20 }, { time: '11시', level: 45 }, { time: '13시', level: 85 }, 
+      { time: '15시', level: 60 }, { time: '17시', level: 30 }, { time: '19시', level: 15 }
+    ]
+  };
+}
+
+/**
+ * 카카오 검색 데이터와 백엔드 조회 데이터를 병합하여 미리보기 객체 생성
+ */
+export function createMergedPreviewPlace(kakaoData, matchedStore, matchedPublic, isLookupLoading = false) {
+  if (isLookupLoading) {
+    return {
+      id: kakaoData.id || `kakao-${kakaoData.y}-${kakaoData.x}`,
+      name: kakaoData.place_name,
+      status: STATUS_TYPES.STORE.LOOKUP_PENDING,
+      lastStatusUpdate: '상태 조회 중',
+      lat: Number(kakaoData.y),
+      lng: Number(kakaoData.x),
+    };
+  }
+
+  if (matchedStore) {
+    const place = mapStoreToPlace(matchedStore);
+    return {
+      ...place,
+      // 카카오에서 온 최신 명칭/주소 우선순위 부여 가능 (필요 시)
+      distance: kakaoData.distance ? Number(kakaoData.distance) : 0,
+      originalData: kakaoData
+    };
+  }
+
+  if (matchedPublic) {
+    const place = mapPublicToPlace(matchedPublic);
+    return {
+      ...place,
+      distance: kakaoData.distance ? Number(kakaoData.distance) : 0,
+      originalData: kakaoData
+    };
+  }
+
+  // 매칭되는 데이터가 없는 경우 (Toggle 미등록)
+  return {
+    id: kakaoData.id || `kakao-${kakaoData.y}-${kakaoData.x}`,
+    name: kakaoData.place_name,
+    category: kakaoData.category_group_name || kakaoData.category_name?.split(' > ').pop() || '기타',
+    address: kakaoData.road_address_name || kakaoData.address_name,
+    contact: kakaoData.phone || '전화번호 미제공',
+    status: STATUS_TYPES.STORE.UNREGISTERED,
+    lastStatusUpdate: 'Toggle 미등록',
+    lat: Number(kakaoData.y),
+    lng: Number(kakaoData.x),
+    objType: 'STORE',
+    distance: kakaoData.distance ? Number(kakaoData.distance) : 0,
+    originalData: kakaoData
+  };
+}
