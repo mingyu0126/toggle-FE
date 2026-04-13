@@ -1,13 +1,15 @@
 import { apiRequest } from './api';
 
-export async function lookupPublicInstitutions(externalSource, externalPlaceIds) {
-  const normalizedIds = [...new Set(
-    (externalPlaceIds || [])
-      .map((id) => String(id || '').trim())
-      .filter(Boolean)
-  )];
+export async function lookupPublicInstitutions(externalSource, requestItems) {
+  // requestItems can be string IDs or objects with metadata
+  const normalizedItems = (requestItems || []).map(item => {
+    if (typeof item === 'string') {
+      return { externalPlaceId: item };
+    }
+    return item;
+  });
 
-  if (normalizedIds.length === 0) {
+  if (normalizedItems.length === 0) {
     return [];
   }
 
@@ -15,7 +17,7 @@ export async function lookupPublicInstitutions(externalSource, externalPlaceIds)
     method: 'POST',
     body: {
       externalSource,
-      externalPlaceIds: normalizedIds,
+      items: normalizedItems,
     },
   });
 

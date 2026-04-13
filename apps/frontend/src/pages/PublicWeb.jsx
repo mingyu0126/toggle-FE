@@ -55,11 +55,12 @@ export default function PublicWeb() {
             id: p.externalPlaceId,
             status: p.congestionLevel,
             category: '공공기관', 
-            address: '주소 정보 없음', 
+            address: p.address || '주소 정보 없음', 
             businessHours: p.operatingHours || '정보 없음',
             estimatedWaitTime: `${p.waitTime || 0}분`,
             lastStatusUpdate: '서버 반영',
-            lat: 37.5065, lng: 127.0536, // Fallback
+            lat: p.latitude || 37.5065,
+            lng: p.longitude || 127.0536,
             hourlyCongestion: [
               { time: '09시', level: 20 }, { time: '11시', level: 45 }, { time: '13시', level: 85 }, 
               { time: '15시', level: 60 }, { time: '17시', level: 30 }, { time: '19시', level: 15 }

@@ -20,6 +20,8 @@ apps/frontend/.env.*.local
 
 # Local daily/tool state
 .gstack/
+.worktrees/
+worktrees/
 
 # Vendored gstack repo and local shortcuts
 .agents/skills/gstack

@@ -23,7 +23,8 @@ import PublicWeb from './pages/PublicWeb'; // 신규 데스크탑 공공기관 �
 import SignupWeb from './pages/SignupWeb'; // 신규 데스크탑 회원가입
 import AdminLoginWeb from './pages/AdminLoginWeb'; // 신규 데스크탑 관리자 로그인
 import AdminWeb from './pages/AdminWeb'; // 신규 데스크탑 관리자 페이지
-import { getCurrentUserRole, isLoggedIn, restoreAuthSession } from './lib/session';
+import { restoreAuthSession } from './lib/session';
+import { useAuthSession } from './hooks/useAuthSession';
 
 // 모바일 앱 형태를 유지할 페이지들을 감싸는 레이아웃 프레임
 function MobileFrame({ children }) {
@@ -35,11 +36,13 @@ function MobileFrame({ children }) {
 }
 
 function ProtectedRoute({ children, redirectTo, roles }) {
-  if (!isLoggedIn()) {
+  const auth = useAuthSession();
+
+  if (!auth.isLoggedIn) {
     return <Navigate to={redirectTo} replace />;
   }
 
-  if (roles?.length && !roles.includes(getCurrentUserRole())) {
+  if (roles?.length && !roles.includes(auth.role)) {
     return <Navigate to="/" replace />;
   }
 

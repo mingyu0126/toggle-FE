@@ -1,0 +1,92 @@
+- generic [ref=e73]:
+  - complementary [ref=e74]:
+    - generic [ref=e75] [cursor=pointer]:
+      - img [ref=e77]
+      - heading "Toggle POS PC" [level=2] [ref=e81]
+    - navigation [ref=e82]:
+      - button "대시보드" [ref=e83] [cursor=pointer]:
+        - img [ref=e84]
+        - text: 대시보드
+      - button "입점 신청 내역" [ref=e87] [cursor=pointer]:
+        - img [ref=e88]
+        - text: 입점 신청 내역
+    - generic [ref=e91]:
+      - generic [ref=e92]:
+        - generic [ref=e93]: t
+        - generic [ref=e94]:
+          - generic [ref=e95]: test-owner
+          - generic [ref=e96]: test@test.com
+      - button "로그아웃" [ref=e97] [cursor=pointer]:
+        - img [ref=e98]
+        - text: 로그아웃
+  - main [ref=e101]:
+    - generic [ref=e102]:
+      - generic [ref=e103]:
+        - combobox [ref=e104] [cursor=pointer]:
+          - option "하삼동커피 안양만안구청점" [selected]
+          - option "중찬미식"
+        - generic [ref=e105]: 영업중
+      - button [ref=e107] [cursor=pointer]:
+        - img [ref=e108]
+    - generic [ref=e111]:
+      - generic [ref=e112]:
+        - heading "실시간 상태 전환" [level=3] [ref=e113]
+        - paragraph [ref=e114]: 현재 상황에 맞추어 매장 상태를 즉각 반영합니다. 토글 지도에 실시간으로 표시됩니다.
+        - generic [ref=e115]:
+          - button "영업 시작" [ref=e116] [cursor=pointer]:
+            - img [ref=e117]
+            - text: 영업 시작
+          - button "브레이크타임" [ref=e119] [cursor=pointer]:
+            - img [ref=e120]
+            - text: 브레이크타임
+          - button "영업 종료" [ref=e123] [cursor=pointer]:
+            - img [ref=e124]
+            - text: 영업 종료
+          - button "조기 마감" [ref=e126] [cursor=pointer]:
+            - img [ref=e127]
+            - text: 조기 마감
+          - button "임시 휴무" [ref=e130] [cursor=pointer]:
+            - img [ref=e131]
+            - text: 임시 휴무
+        - generic [ref=e134]:
+          - heading "📢 사장님 공지 (손님 앱 알림)" [level=4] [ref=e135]
+          - generic [ref=e136]:
+            - textbox "예) 곧 재료가 소진됩니다! 서둘러 주세요." [ref=e137]
+            - button "반영" [ref=e138] [cursor=pointer]
+        - generic [ref=e140]:
+          - heading "운영시간 관리" [level=4] [ref=e141]
+          - generic [ref=e142]:
+            - textbox [ref=e143]: 09:00
+            - textbox [ref=e144]: 18:00
+          - generic [ref=e145]:
+            - textbox [ref=e146]: 15:00
+            - textbox [ref=e147]: 17:00
+          - button "운영시간 저장" [ref=e148] [cursor=pointer]
+      - generic [ref=e149]:
+        - heading "금일 작업 로그" [level=3] [ref=e150]:
+          - img [ref=e151]
+          - text: 금일 작업 로그
+        - generic [ref=e153]:
+          - time [ref=e154]: 오전 12:21
+          - generic [ref=e155]: 영업종료
+          - generic [ref=e156]: PC 관리자 패널 시작
+      - generic [ref=e157]:
+        - generic [ref=e158]:
+          - heading "매장 사진첩 관리 (최대 10장)" [level=3] [ref=e159]:
+            - img [ref=e160]
+            - text: 매장 사진첩 관리 (최대 10장)
+          - button "서버에 저장하기" [ref=e164] [cursor=pointer]
+        - paragraph [ref=e165]: 점주님이 등록하신 이 사진들이 매장 상세 페이지 상단 캐러셀에 아름답게 나타납니다.
+        - generic [ref=e166]:
+          - generic [ref=e167] [cursor=pointer]:
+            - img [ref=e168]
+            - generic [ref=e172]: PC에서 사진 올리기
+          - generic [ref=e173]:
+            - img "Preview 0" [ref=e174]
+            - button "×" [ref=e175] [cursor=pointer]
+          - generic [ref=e176]:
+            - img "Preview 1" [ref=e177]
+            - button "×" [ref=e178] [cursor=pointer]
+          - generic [ref=e179]:
+            - img "Preview 2" [ref=e180]
+            - button "×" [ref=e181] [cursor=pointer]

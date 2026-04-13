@@ -19,10 +19,9 @@ import { logout as logoutRequest } from '../lib/auth';
 import {
   clearAuthSession,
   getCurrentUser,
-  getCurrentUserRole,
   getRefreshToken,
-  isLoggedIn,
 } from '../lib/session';
+import { useAuthSession } from '../hooks/useAuthSession';
 import {
   approveOwnerStoreApplication,
   executeAdminBusinessVerification,
@@ -138,6 +137,7 @@ function isApprovalReady(application) {
 
 export default function AdminWeb() {
   const navigate = useNavigate();
+  const auth = useAuthSession();
   const [applications, setApplications] = useState([]);
   const [selectedApplicationId, setSelectedApplicationId] = useState(null);
   const [applicationDetail, setApplicationDetail] = useState(null);
@@ -157,18 +157,18 @@ export default function AdminWeb() {
   const [isRunningMapVerification, setIsRunningMapVerification] = useState(false);
   const [isManualVerifying, setIsManualVerifying] = useState(false);
   const [detailReloadKey, setDetailReloadKey] = useState(0);
-  const currentUser = getCurrentUser();
+  const currentUser = auth.user?.email ? auth.user : getCurrentUser();
 
   useEffect(() => {
     document.title = 'Toggle Admin Console';
 
-    if (!isLoggedIn() || getCurrentUserRole() !== 'ADMIN') {
+    if (!auth.isLoggedIn || auth.role !== 'ADMIN') {
       navigate('/adminloginweb', { replace: true });
       return;
     }
 
     loadApplications({ initial: true });
-  }, [navigate]);
+  }, [auth.isLoggedIn, auth.role, navigate]);
 
   useEffect(() => {
     if (!selectedApplicationId) {

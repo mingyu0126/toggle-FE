@@ -1,0 +1,150 @@
+- generic [ref=e75]:
+  - banner [ref=e76]:
+    - generic [ref=e77]:
+      - img [ref=e79]
+      - heading "Toggle Owner Dashboard" [level=1] [ref=e83]
+    - button "로그아웃" [ref=e84] [cursor=pointer]:
+      - img [ref=e85]
+      - text: 로그아웃
+  - main [ref=e88]:
+    - generic [ref=e89]:
+      - generic [ref=e90]:
+        - generic [ref=e91]: 하삼동커피 안양만안구청점
+        - generic [ref=e92]: "Store ID: 1"
+        - generic [ref=e93]: 운영시간 09:00 - 18:00|휴게 15:00 - 17:00
+      - generic [ref=e94]:
+        - generic [ref=e95]: 현업 영업 상태 (LIVE)
+        - generic [ref=e96]: 영업중
+    - generic [ref=e97]:
+      - heading "내 매장 연결 현황" [level=2] [ref=e98]:
+        - img [ref=e99]
+        - text: 내 매장 연결 현황
+      - generic [ref=e103]:
+        - paragraph [ref=e104]: 현재 연결된 매장 2개
+        - combobox [ref=e105]:
+          - option "하삼동커피 안양만안구청점" [selected]
+          - option "중찬미식"
+        - generic [ref=e106]:
+          - generic [ref=e107]:
+            - generic [ref=e108]: 하삼동커피 안양만안구청점
+            - generic [ref=e109]: 경기 안양시 만안구 만안로 35
+          - generic [ref=e110]: 영업중
+        - generic [ref=e111]:
+          - generic [ref=e112]:
+            - generic [ref=e113]: 중찬미식
+            - generic [ref=e114]: 경기 안양시 만안구 냉천로 4
+          - generic [ref=e115]: 영업중
+    - generic [ref=e116]:
+      - heading "매장 등록 신청" [level=2] [ref=e117]:
+        - img [ref=e118]
+        - text: 매장 등록 신청
+      - generic [ref=e119]:
+        - paragraph [ref=e120]: 대표자명, 개업일자, 실영업주소, 실영업 전화번호까지 입력해야 관리자 검증과 최종 승인이 가능합니다.
+        - textbox "상호명" [ref=e121]
+        - 'textbox "사업자 등록번호 (예: 123-45-67890)" [ref=e122]'
+        - textbox "대표자명" [ref=e123]
+        - textbox [ref=e124]
+        - textbox "실영업주소" [ref=e125]
+        - textbox "전화번호 형식으로 입력해 주세요." [ref=e126]:
+          - /placeholder: 실영업 전화번호
+        - button "Choose File" [ref=e127]
+        - button "매장 등록 신청하기" [ref=e128] [cursor=pointer]
+    - generic [ref=e129]:
+      - heading "내 신청 현황" [level=2] [ref=e130]:
+        - img [ref=e131]
+        - text: 내 신청 현황
+      - generic [ref=e133]:
+        - article [ref=e134]:
+          - generic [ref=e135]:
+            - strong [ref=e136]: 중찬미식
+            - generic [ref=e137]: 승인 완료
+          - generic [ref=e138]: 매장 연결이 끝났고 운영을 시작할 수 있습니다.
+          - generic [ref=e141]: 사업자번호 1318645187
+          - generic [ref=e142]: 경기도 안양시 만안구 냉천로 4
+          - generic [ref=e143]: 사업자 검증 AUTO_VERIFIED · 지도 검증 VERIFIED
+        - article [ref=e144]:
+          - generic [ref=e145]:
+            - strong [ref=e146]: 하삼동커피
+            - generic [ref=e147]: 승인 완료
+          - generic [ref=e148]: 매장 연결이 끝났고 운영을 시작할 수 있습니다.
+          - generic [ref=e151]: 사업자번호 1318645187
+          - generic [ref=e152]: 경기도 안양시 만안구 만안로 35
+          - generic [ref=e153]: 사업자 검증 AUTO_VERIFIED · 지도 검증 VERIFIED
+        - article [ref=e154]:
+          - generic [ref=e155]:
+            - strong [ref=e156]: 운영 확인용 토글 샵
+            - generic [ref=e157]: 자동 검증 재시도 필요
+          - generic [ref=e158]: 외부 검증이 일시적으로 불가해 관리자 확인이 필요합니다.
+          - generic [ref=e161]: 사업자번호 8888877777
+          - generic [ref=e162]: 서울특별시 강남구 선릉로 551
+          - generic [ref=e163]: 사업자 검증 AUTO_VERIFICATION_UNAVAILABLE · 지도 검증 FAILED
+    - generic [ref=e164]:
+      - generic [ref=e165]:
+        - heading "매장 사진 관리" [level=2] [ref=e166]:
+          - img [ref=e167]
+          - text: 매장 사진 관리
+        - generic [ref=e171]: 최대 10장
+      - generic [ref=e172]:
+        - generic [ref=e173]:
+          - generic [ref=e174] [cursor=pointer]:
+            - img [ref=e175]
+            - generic [ref=e179]: 사진 추가
+          - generic [ref=e180]:
+            - img "store image" [ref=e181]
+            - button "×" [ref=e182] [cursor=pointer]
+          - generic [ref=e183]:
+            - img "store image" [ref=e184]
+            - button "×" [ref=e185] [cursor=pointer]
+        - button "사진 설정 저장하기" [ref=e186] [cursor=pointer]
+    - generic [ref=e187]:
+      - heading "매장별 운영시간 관리" [level=2] [ref=e188]:
+        - img [ref=e189]
+        - text: 매장별 운영시간 관리
+      - generic [ref=e192]:
+        - paragraph [ref=e193]: 선택한 매장 기준으로 운영시간과 브레이크타임을 저장합니다. 저장한 값은 상세 페이지 영업시간 영역에 그대로 노출됩니다.
+        - generic [ref=e194]:
+          - generic [ref=e195]: 영업시간
+          - generic [ref=e196]:
+            - textbox [ref=e197]: 09:00
+            - generic [ref=e198]: ~
+            - textbox [ref=e199]: 18:00
+        - generic [ref=e200]:
+          - generic [ref=e201]: 브레이크타임
+          - generic [ref=e202]:
+            - textbox [ref=e203]: 15:00
+            - generic [ref=e204]: ~
+            - textbox [ref=e205]: 17:00
+        - button "운영시간 저장" [ref=e206] [cursor=pointer]
+    - generic [ref=e207]:
+      - heading "실시간 상태 관리" [level=2] [ref=e208]:
+        - img [ref=e209]
+        - text: 실시간 상태 관리
+      - generic [ref=e212]:
+        - button "영업중 전환" [ref=e213] [cursor=pointer]:
+          - img [ref=e214]
+          - text: 영업중 전환
+        - button "브레이크타임" [ref=e216] [cursor=pointer]:
+          - img [ref=e217]
+          - text: 브레이크타임
+        - button "영업 종료" [ref=e220] [cursor=pointer]:
+          - img [ref=e221]
+          - text: 영업 종료
+        - button "조기 마감" [ref=e223] [cursor=pointer]:
+          - img [ref=e224]
+          - text: 조기 마감
+        - button "임시 휴무" [ref=e227] [cursor=pointer]:
+          - img [ref=e228]
+          - text: 임시 휴무
+    - generic [ref=e230]:
+      - heading "📢 사장님 실시간 코멘트" [level=2] [ref=e231]
+      - generic [ref=e232]:
+        - textbox "예) 재료가 조기 소진되었습니다!, 오늘 6시까지 영업합니다." [ref=e233]
+        - button "코멘트 저장/적용" [ref=e234] [cursor=pointer]
+    - generic [ref=e235]:
+      - heading "당일 로그 (History)" [level=2] [ref=e236]:
+        - img [ref=e237]
+        - text: 당일 로그 (History)
+      - generic [ref=e240]:
+        - generic [ref=e241]: 오전 12:15
+        - generic [ref=e242]: 영업종료
+        - generic [ref=e243]: 포스기 로그인 (인증 완료)

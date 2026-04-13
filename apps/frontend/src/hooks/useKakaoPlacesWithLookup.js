@@ -48,14 +48,20 @@ export function useKakaoPlacesWithLookup(center, keyword, category, options = { 
 
       if (status === window.kakao.maps.services.Status.OK && data && data.length > 0) {
         try {
-          const externalPlaceIds = data.map(item => item.id);
-          
           let matchedStores = [];
           let matchedPublics = [];
 
           if (category === '공공기관') {
-            matchedPublics = await lookupPublicInstitutions('KAKAO', externalPlaceIds);
+            const requestItems = data.map(item => ({
+              externalPlaceId: item.id,
+              name: item.place_name,
+              address: item.road_address_name || item.address_name,
+              latitude: Number(item.y),
+              longitude: Number(item.x)
+            }));
+            matchedPublics = await lookupPublicInstitutions('KAKAO', requestItems);
           } else {
+            const externalPlaceIds = data.map(item => item.id);
             matchedStores = await lookupStoresByExternalPlaceIds('KAKAO', externalPlaceIds);
           }
           
@@ -77,6 +83,10 @@ export function useKakaoPlacesWithLookup(center, keyword, category, options = { 
                 waitTime: publicMatch.waitTime,
                 operatingHours: publicMatch.operatingHours,
                 objType: 'PUBLIC',
+                // 실제 주소 및 좌표 동기화 (lookup에서 보강됨)
+                address: publicMatch.address || previewPlace.address,
+                lat: publicMatch.latitude || previewPlace.lat,
+                lng: publicMatch.longitude || previewPlace.lng
               };
             }
 
