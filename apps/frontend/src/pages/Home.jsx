@@ -10,12 +10,14 @@ import PlaceCard from '../components/common/PlaceCard';
 import { useStoreLookupByExternalPlaceId } from '../hooks/useStoreLookupByExternalPlaceId';
 import { useKakaoPlacesWithLookup } from '../hooks/useKakaoPlacesWithLookup';
 import { createSearchPreviewPlace } from '../lib/storePreview';
+import { getLocalFavorites } from '../lib/session';
 import styles from './MainMap.module.css';
 
 export default function Home() {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeCategory, setActiveCategory] = useState('전체');
+  const [favorites, setFavorites] = useState(() => getLocalFavorites());
   
   // Map control states
   const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
@@ -40,8 +42,20 @@ export default function Home() {
   const { storeMatch: selectedPlaceStoreMatch, isLoading: isSelectedPlaceLookupLoading } =
     useStoreLookupByExternalPlaceId(selectedExternalPlaceId);
 
+  useEffect(() => {
+    const handleFavoritesChanged = () => {
+      setFavorites(getLocalFavorites());
+    };
+
+    window.addEventListener('favoritesChanged', handleFavoritesChanged);
+    window.addEventListener('authChanged', handleFavoritesChanged);
+    return () => {
+      window.removeEventListener('favoritesChanged', handleFavoritesChanged);
+      window.removeEventListener('authChanged', handleFavoritesChanged);
+    };
+  }, []);
+
   const handleDragStart = (e) => {
-    // ... 기존 드래그 핸들 (생략하지 않고 복구)
     const y = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
     setDragStartY(y);
     setStartHeight(sheetHeight);
@@ -85,7 +99,7 @@ export default function Home() {
       window.removeEventListener('touchmove', handleDragMove);
       window.removeEventListener('touchend', handleDragEnd);
     };
-  }, [isDragging, handleDragMove]);
+  }, [isDragging]);
 
   // 마운트 시 내 위치 자동 동기화
   useEffect(() => {
@@ -128,7 +142,7 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword]); // myLocation, mapCenter는 의도적으로 제외 (지도 이동 시 매번 재검색 방지)
 
-  // 장소 선택 헨들러 (엔터 및 연관검색어 클릭 공유)
+  // 장소 선택 핸들러 (엔터 및 연관검색어 클릭 공유)
   const handleSelectPlace = (placeData) => {
     const lat = Number(placeData.y);
     const lng = Number(placeData.x);
@@ -213,7 +227,12 @@ export default function Home() {
     rawPreviewItems = [mappedPlace, ...rawPreviewItems.filter(item => item.id !== mappedPlace.id)];
   }
 
-  const previewItems = rawPreviewItems.slice(0, 5); // 5개 노출
+  const previewItems = rawPreviewItems.slice(0, 5).map(item => ({
+    ...item,
+    isFavorited: item.objType === 'PUBLIC' 
+      ? favorites.publics.includes(String(item.id)) 
+      : favorites.stores.includes(String(item.id))
+  }));
 
   return (
     <div className={styles.mapContainer}>
@@ -287,20 +306,22 @@ export default function Home() {
                         position: { lat: item.lat, lng: item.lng },
                         title: item.name,
                         status: item.status === 'OPEN' || item.status === '영업중' ? '영업중' : item.status,
-                        color: '#10b981',
+                        color: item.objType === 'PUBLIC' ? '#3b82f6' : '#10b981',
                         originalData: item.originalData
                       });
                       setMapCenter({ lat: item.lat, lng: item.lng });
                     }}
                     style={{
                       cursor: 'pointer',
-                      background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                      background: item.isFavorited 
+                        ? 'linear-gradient(135deg, #ef4444, #f43f5e)' 
+                        : (item.objType === 'PUBLIC' ? 'linear-gradient(135deg, #3b82f6, #6366f1)' : 'linear-gradient(135deg, #10b981, #059669)'),
                       padding: '4px 10px',
                       borderRadius: '16px',
                       color: 'white',
                       fontWeight: '800',
                       fontSize: '0.75rem',
-                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.5)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
                       border: '2px solid white',
                       display: 'flex',
                       alignItems: 'center',
@@ -485,17 +506,18 @@ export default function Home() {
               <PlaceCard 
                 key={item.id} 
                 place={item} 
-                type={item.status === 'RELAXED' || item.status === 'NORMAL' || item.status === 'BUSY' || item.status === 'VERY_BUSY' ? 'CONGESTION' : 'STORE'} 
+                type={item.objType === 'PUBLIC' ? 'CONGESTION' : 'STORE'} 
                 onClick={() => {
                   if (selectedPlace?.id === item.id) {
-                    navigate(`/store/${item.id}`, { state: { placePreview: item } });
+                    const detailPath = item.objType === 'PUBLIC' ? `/public/${item.id}` : `/store/${item.id}`;
+                    navigate(detailPath, { state: { placePreview: item } });
                   } else {
                     setSelectedPlace({
                       id: item.id,
                       position: { lat: item.lat, lng: item.lng },
                       title: item.name,
                       status: item.status === 'OPEN' || item.status === '영업중' ? '영업중' : item.status,
-                      color: '#10b981',
+                      color: item.objType === 'PUBLIC' ? '#3b82f6' : '#10b981',
                       originalData: item.originalData
                     });
                     setMapCenter({ lat: item.lat, lng: item.lng });
