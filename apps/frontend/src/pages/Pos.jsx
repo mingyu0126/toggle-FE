@@ -158,14 +158,20 @@ export default function Pos() {
     return stores;
   };
 
-  const buildProfilePayload = () => ({
-    ownerNotice: ownerComment,
-    openTime,
-    closeTime,
-    breakStart,
-    breakEnd,
-    imageUrls: (selectedStore?.imageUrls?.length ? storeImages : storeImages.filter((image) => !DEFAULT_STORE_IMAGES.includes(image))).slice(0, MAX_OWNER_IMAGES),
-  });
+  const buildProfilePayload = () => {
+    // 필터링 강화: 서버에서 온 실제 이미지가 없는 상태에서만 기본 이미지를 제거
+    const filteredImages = storeImages.filter(img => !DEFAULT_STORE_IMAGES.includes(img));
+    const finalImages = selectedStore?.imageUrls?.length > 0 ? storeImages : filteredImages;
+
+    return {
+      ownerNotice: ownerComment,
+      openTime,
+      closeTime,
+      breakStart,
+      breakEnd,
+      imageUrls: finalImages.slice(0, MAX_OWNER_IMAGES),
+    };
+  };
 
   const syncUpdatedStore = (updatedStore) => {
     setLinkedStores((prev) => prev.map((store) => (
@@ -525,7 +531,7 @@ export default function Pos() {
           <h2 className={styles.sectionTitle}><Clock size={20} /> 매장별 운영시간 관리</h2>
           <div className={styles.settingsPanel}>
             <p className={styles.sectionDescription}>
-              선택한 매장 기준으로 운영시간과 브레이크타임을 저장합니다. 저장한 값은 상세 페이지 영업시간 영역에 그대로 노출됩니다.
+              선택한 매장 기준으로 운영시간과 브레이크타임을 저장합니다. 저장한 값은 상세 페이지  영업시간 영역에 그대로 노출됩니다.
             </p>
             <div className={styles.formGroup}>
               <label>영업시간</label>
@@ -632,7 +638,7 @@ export default function Pos() {
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle} style={{ color: 'var(--color-primary)' }}>📢 사장님 실시간 코멘트</h2>
+          <h2 className={styles.sectionTitle} style={{ color: 'var(--color-primary)' }}>📢 사장님  실시간 코멘트</h2>
           <div className={styles.settingsPanel} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <textarea 
               placeholder="예) 재료가 조기 소진되었습니다!, 오늘 6시까지 영업합니다."
