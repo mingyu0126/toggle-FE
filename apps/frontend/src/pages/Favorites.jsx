@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Heart, Store, Users, User, MapPin, List as ListIcon } from 'lucide-react';
 import PlaceCard from '../components/common/PlaceCard';
 import { fetchFavoriteStores } from '../lib/favorites';
-import { lookupPublicInstitutions } from '../lib/publicInstitutions';
+import { fetchPublicInstitutionsByIds } from '../lib/publicInstitutions';
 import { mapStoreToPlace, mapPublicToPlace } from '../lib/mappers';
-import { getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn, updateCurrentUser } from '../lib/session';
+import { addMyMapPublic, addMyMapStore } from '../lib/myMap';
+import { getLocalFavorites, isLoggedIn as getIsLoggedIn, syncLocalFavoritesSnapshot } from '../lib/session';
 import styles from './Favorites.module.css';
 
 export default function Favorites() {
@@ -35,12 +36,17 @@ export default function Favorites() {
         }),
         Promise.resolve(getLocalFavorites())
       ]);
-      
+
+      syncLocalFavoritesSnapshot({
+        stores: storeItems.map((item) => item.storeId),
+        publics: latestFavorites.publics || [],
+      });
+
       setFavoriteStores(storeItems.map(mapStoreToPlace));
       
       if (latestFavorites.publics?.length > 0) {
         try {
-          const publicItems = await lookupPublicInstitutions('KAKAO', latestFavorites.publics);
+          const publicItems = await fetchPublicInstitutionsByIds(latestFavorites.publics);
           setFavoritePublics(publicItems.map(mapPublicToPlace));
         } catch (err) {
           console.error('Publics load failed:', err);
@@ -49,7 +55,7 @@ export default function Favorites() {
       } else {
         setFavoritePublics([]);
       }
-    } catch (loadError) {
+    } catch {
       setError('장소를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
@@ -58,7 +64,6 @@ export default function Favorites() {
 
   useEffect(() => {
     loadFavorites();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -73,25 +78,17 @@ export default function Favorites() {
 
   const totalCount = favoriteStores.length + favoritePublics.length;
 
-  const handleAddToMyMap = (itemId, type) => {
-    const latestUser = getCurrentUser();
-    const myMap = latestUser.myMap || { stores: [], publics: [] };
-    const key = type === 'STORE' ? 'stores' : 'publics';
-    const value = String(itemId);
-
-    if ((myMap[key] || []).map(String).includes(value)) {
-      alert('이미 내 지도에 추가된 장소입니다.');
-      return;
+  const handleAddToMyMap = async (itemId, type) => {
+    try {
+      if (type === 'STORE') {
+        await addMyMapStore(itemId);
+      } else {
+        await addMyMapPublic(itemId);
+      }
+      alert('내 지도에 성공적으로 추가되었습니다.');
+    } catch (addError) {
+      alert(addError.message || '내 지도에 추가하는 중 오류가 발생했습니다.');
     }
-
-    const updatedMyMap = {
-      ...myMap,
-      [key]: [...(myMap[key] || []), value],
-    };
-
-    updateCurrentUser({ ...latestUser, myMap: updatedMyMap });
-
-    alert('내 지도에 성공적으로 추가되었습니다.');
   };
 
   const showStoreSection = activeTab === 'ALL' || activeTab === 'STORE';
@@ -145,15 +142,17 @@ export default function Favorites() {
                 </div>
                 <div className={styles.grid}>
                   {favoriteStores.map((store) => (
-                    <div key={store.id} style={{ position: 'relative' }}>
+                    <div key={store.id} className={styles.cardBlock}>
                       <PlaceCard place={store} type="STORE" />
-                      <button className={styles.myMapBtn} onClick={() => handleAddToMyMap(store.id, 'STORE')}>
-                        내 지도에 추가
-                      </button>
+                      <div className={styles.cardActionRow}>
+                        <button className={styles.myMapBtn} onClick={() => handleAddToMyMap(store.internalStoreId, 'STORE')}>
+                          내 지도에 추가
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </section> section
+              </section>
             )}
 
             {!isLoading && !error && showPublicSection && favoritePublics.length > 0 && (
@@ -164,11 +163,13 @@ export default function Favorites() {
                 </div>
                 <div className={styles.grid}>
                   {favoritePublics.map((place) => (
-                    <div key={place.id} style={{ position: 'relative' }}>
+                    <div key={place.id} className={styles.cardBlock}>
                       <PlaceCard place={place} type="CONGESTION" />
-                      <button className={styles.myMapBtn} onClick={() => handleAddToMyMap(place.id, 'PUBLIC')}>
-                        내 지도에 추가
-                      </button>
+                      <div className={styles.cardActionRow}>
+                        <button className={styles.myMapBtn} onClick={() => handleAddToMyMap(place.internalId, 'PUBLIC')}>
+                          내 지도에 추가
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

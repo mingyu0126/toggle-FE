@@ -1,4 +1,9 @@
 import { STATUS_TYPES } from '../constants/status';
+import {
+  normalizeSearchCategory,
+  normalizeUiCategory,
+  resolveDisplayCategory,
+} from './placeCategories';
 
 /**
  * 백엔드 스토어 DTO를 프론트엔드 장소 객체로 변환하는 통합 매퍼
@@ -10,7 +15,9 @@ export function mapStoreToPlace(item) {
     id: String(item.externalPlaceId || item.storeId),
     internalStoreId: item.storeId,
     name: item.name,
-    category: item.categoryName || '매장',
+    category: resolveDisplayCategory({ category: item.categoryName || '매장' }),
+    searchCategory: normalizeSearchCategory({ category: item.categoryName || '매장' }),
+    normalizedCategory: normalizeUiCategory({ category: item.categoryName || '매장' }),
     address: item.address,
     roadAddress: item.roadAddress,
     jibunAddress: item.jibunAddress,
@@ -45,6 +52,8 @@ export function mapPublicToPlace(item) {
     internalId: item.id,
     name: item.name,
     category: '공공기관',
+    searchCategory: '공공기관',
+    normalizedCategory: '공공기관',
     address: item.address || '주소 정보 없음',
     status: item.congestionLevel,
     lastStatusUpdate: '서버 반영',
@@ -78,8 +87,11 @@ export function createMergedPreviewPlace(kakaoData, matchedStore, matchedPublic,
 
   if (matchedStore) {
     const place = mapStoreToPlace(matchedStore);
+    const searchCategory = normalizeSearchCategory(kakaoData);
     return {
       ...place,
+      searchCategory,
+      normalizedCategory: searchCategory,
       // 카카오에서 온 최신 명칭/주소 우선순위 부여 가능 (필요 시)
       distance: kakaoData.distance ? Number(kakaoData.distance) : 0,
       originalData: kakaoData
@@ -90,6 +102,8 @@ export function createMergedPreviewPlace(kakaoData, matchedStore, matchedPublic,
     const place = mapPublicToPlace(matchedPublic);
     return {
       ...place,
+      searchCategory: '공공기관',
+      normalizedCategory: '공공기관',
       distance: kakaoData.distance ? Number(kakaoData.distance) : 0,
       originalData: kakaoData
     };
@@ -99,7 +113,10 @@ export function createMergedPreviewPlace(kakaoData, matchedStore, matchedPublic,
   return {
     id: kakaoData.id || `kakao-${kakaoData.y}-${kakaoData.x}`,
     name: kakaoData.place_name,
-    category: kakaoData.category_group_name || kakaoData.category_name?.split(' > ').pop() || '기타',
+    category: resolveDisplayCategory(kakaoData),
+    searchCategory: normalizeSearchCategory(kakaoData),
+    normalizedCategory: normalizeUiCategory(kakaoData),
+    rawCategoryName: kakaoData.category_name || '',
     address: kakaoData.road_address_name || kakaoData.address_name,
     contact: kakaoData.phone || '전화번호 미제공',
     status: STATUS_TYPES.STORE.UNREGISTERED,

@@ -264,9 +264,17 @@
 
 .listHeader {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
   padding: 1.5rem 1.5rem 1rem 1.5rem;
+}
+
+.listTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
 }
 
 .listHeader h3 {
@@ -282,6 +290,29 @@
   background: rgba(96, 165, 250, 0.15);
   padding: 0.15rem 0.5rem;
   border-radius: var(--radius-full);
+}
+
+.openFilterBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.openFilterBtn.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.24));
+  border-color: rgba(96, 165, 250, 0.45);
+  color: white;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
 }
 
 .cardsWrapper {
@@ -350,6 +381,37 @@
 .myLocationBtn:hover {
   background: var(--color-bg-hover);
   transform: scale(1.05);
+}
+
+.mapSearchButtonWrap {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+}
+
+.mapSearchButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.7rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.95);
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.mapSearchButton:active {
+  transform: scale(0.97);
 }
 
 /* 데스크탑 전용 하단 플로팅 바 & 푸터 */

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Store as StoreIcon, Play, Pause, Square, AlertTriangle, Clock, Settings, List, Image as ImageIcon, Briefcase, Bell } from 'lucide-react';
+import { LogOut, Store as StoreIcon, Play, Pause, Square, AlertTriangle, Clock, Settings, List, Image as ImageIcon, Briefcase, Bell, FilePlus2 } from 'lucide-react';
 import { STATUS_TYPES } from '../constants/status';
 import StatusBadge from '../components/common/StatusBadge';
 import { logout as logoutRequest } from '../lib/auth';
@@ -22,15 +22,23 @@ export default function PosWeb() {
   const [linkedStores, setLinkedStores] = useState([]);
   const [selectedStoreId, setSelectedStoreId] = useState(null);
   const [applications, setApplications] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [applicationError, setApplicationError] = useState('');
+  const [isSubmittingApplication, setIsSubmittingApplication] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [statusError, setStatusError] = useState('');
   
-  const [activeTab, setActiveTab] = useState('DASHBOARD'); // 'DASHBOARD', 'APPLICATION'
+  const [activeTab, setActiveTab] = useState('DASHBOARD'); // 'DASHBOARD', 'APPLICATION_CREATE', 'APPLICATION'
+  const [applicationForm, setApplicationForm] = useState({
+    storeName: '',
+    businessNumber: '',
+    representativeName: '',
+    businessOpenDate: '',
+    businessAddress: '',
+    businessPhone: '',
+    businessLicenseFile: null,
+  });
 
   const selectedStore = linkedStores.find((store) => store.storeId === selectedStoreId) || linkedStores[0] || null;
-  const displayStoreName = selectedStore?.storeName || currentUser.nickname || '연결 대기 중';
-  const displayStoreId = selectedStore?.storeId || currentUser.email || currentUser.id || 'owner';
   
   const [storeStatus, setStoreStatus] = useState(STATUS_TYPES.STORE.CLOSED);
   const [ownerComment, setOwnerCommentState] = useState('');
@@ -57,8 +65,6 @@ export default function PosWeb() {
         }
       } catch (err) {
         if (!ignore) console.error(err);
-      } finally {
-        if (!ignore) setIsLoading(false);
       }
     }
     loadData();
@@ -80,7 +86,11 @@ export default function PosWeb() {
   const handleLogout = async () => {
     const refreshToken = getRefreshToken();
     if (refreshToken) {
-      try { await logoutRequest(refreshToken); } catch {}
+      try {
+        await logoutRequest(refreshToken);
+      } catch (error) {
+        console.warn(error);
+      }
     }
     clearAuthSession();
     navigate('/loginweb');
@@ -160,6 +170,39 @@ export default function PosWeb() {
     return `${styles.statusBtn} ${styles.activeGreen}`;
   };
 
+  const handleChangeApplicationField = (field, value) => {
+    setApplicationForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmitApplication = async (e) => {
+    e.preventDefault();
+    setApplicationError('');
+    setIsSubmittingApplication(true);
+
+    try {
+      await createOwnerStoreApplication(applicationForm);
+      const [stores, apps] = await Promise.all([fetchMyOwnerStores(), fetchMyOwnerStoreApplications()]);
+      setLinkedStores(stores);
+      setSelectedStoreId((current) => current ?? stores[0]?.storeId ?? null);
+      setApplications(apps);
+      setApplicationForm({
+        storeName: '',
+        businessNumber: '',
+        representativeName: '',
+        businessOpenDate: '',
+        businessAddress: '',
+        businessPhone: '',
+        businessLicenseFile: null,
+      });
+      setActiveTab('APPLICATION');
+      alert('매장 등록 신청이 접수되었습니다.');
+    } catch (error) {
+      setApplicationError(error.message || '매장 등록 신청 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmittingApplication(false);
+    }
+  };
+
   return (
     <div className={styles.webContainer}>
       {/* Sidebar */}
@@ -173,16 +216,19 @@ export default function PosWeb() {
           <button className={`${styles.navItem} ${activeTab === 'DASHBOARD' ? styles.navActive : ''}`} onClick={() => setActiveTab('DASHBOARD')}>
             <Settings size={20} /> 대시보드
           </button>
+          <button className={`${styles.navItem} ${activeTab === 'APPLICATION_CREATE' ? styles.navActive : ''}`} onClick={() => setActiveTab('APPLICATION_CREATE')}>
+            <FilePlus2 size={20} /> 매장 등록 신청
+          </button>
           <button className={`${styles.navItem} ${activeTab === 'APPLICATION' ? styles.navActive : ''}`} onClick={() => setActiveTab('APPLICATION')}>
-            <Briefcase size={20} /> 입점 신청 내역
+            <Briefcase size={20} /> 내 신청 현황
           </button>
         </nav>
 
         <div className={styles.sidebarFooter}>
           <div className={styles.userInfo}>
-            <div className={styles.userAvatar}>{currentUser?.nickname?.[0] || 'O'}</div>
+            <div className={styles.userAvatar}>{currentUser?.displayName?.[0] || currentUser?.nickname?.[0] || 'O'}</div>
             <div className={styles.userDetails}>
-              <div className={styles.userName}>{currentUser?.nickname || 'Owner'}</div>
+              <div className={styles.userName}>{currentUser?.displayName || currentUser?.nickname || 'Owner'}</div>
               <div className={styles.userEmail}>{currentUser?.email || 'owner@toggle.com'}</div>
             </div>
           </div>
@@ -334,10 +380,84 @@ export default function PosWeb() {
             </div>
           </section>
         </div>
+        ) : activeTab === 'APPLICATION_CREATE' ? (
+          <div className={styles.dashboardGrid} style={{ display: 'block' }}>
+            <section className={`${styles.card} ${styles.applicationFormCard}`}>
+              <h3><FilePlus2 size={20} /> 매장 등록 신청</h3>
+              <p className={styles.subtext}>PC에서도 바로 사업자 정보를 제출해 매장 연결 승인을 신청할 수 있습니다.</p>
+              <form className={styles.applicationForm} onSubmit={handleSubmitApplication}>
+                <div className={styles.applicationFormGrid}>
+                  <input
+                    className={styles.TextInput}
+                    placeholder="상호명"
+                    value={applicationForm.storeName}
+                    onChange={(e) => handleChangeApplicationField('storeName', e.target.value)}
+                    required
+                  />
+                  <input
+                    className={styles.TextInput}
+                    placeholder="사업자 등록번호 (예: 123-45-67890)"
+                    value={applicationForm.businessNumber}
+                    onChange={(e) => handleChangeApplicationField('businessNumber', e.target.value)}
+                    required
+                  />
+                  <input
+                    className={styles.TextInput}
+                    placeholder="대표자명"
+                    value={applicationForm.representativeName}
+                    onChange={(e) => handleChangeApplicationField('representativeName', e.target.value)}
+                    required
+                  />
+                  <input
+                    className={styles.TextInput}
+                    type="date"
+                    value={applicationForm.businessOpenDate}
+                    onChange={(e) => handleChangeApplicationField('businessOpenDate', e.target.value)}
+                    required
+                  />
+                  <input
+                    className={`${styles.TextInput} ${styles.applicationFormFull}`}
+                    placeholder="실영업주소"
+                    value={applicationForm.businessAddress}
+                    onChange={(e) => handleChangeApplicationField('businessAddress', e.target.value)}
+                    required
+                  />
+                  <input
+                    className={styles.TextInput}
+                    placeholder="실영업 전화번호"
+                    value={applicationForm.businessPhone}
+                    onChange={(e) => handleChangeApplicationField('businessPhone', e.target.value)}
+                    inputMode="tel"
+                    pattern="^[0-9+()\\-\\s]{7,30}$"
+                    title="전화번호 형식으로 입력해 주세요."
+                    required
+                  />
+                  <label className={`${styles.fileInputWrap} ${styles.applicationFormFull}`}>
+                    <span className={styles.fileInputLabel}>사업자 등록증 파일 업로드</span>
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      onChange={(e) => handleChangeApplicationField('businessLicenseFile', e.target.files?.[0] || null)}
+                      required
+                    />
+                  </label>
+                </div>
+                {applicationError && <div className={styles.errorBox}>{applicationError}</div>}
+                <div className={styles.applicationFormActions}>
+                  <button className={styles.primaryBtn} type="submit" disabled={isSubmittingApplication}>
+                    {isSubmittingApplication ? '신청 중...' : '매장 등록 신청하기'}
+                  </button>
+                  <button className={styles.secondaryBtn} type="button" onClick={() => setActiveTab('APPLICATION')}>
+                    내 신청 현황 보기
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
         ) : (
           <div className={styles.dashboardGrid} style={{ display: 'block' }}>
             <section className={styles.card}>
-              <h3><Briefcase size={20} /> 입점 신청 현황</h3>
+              <h3><Briefcase size={20} /> 내 신청 현황</h3>
               <p className={styles.subtext}>사업자 확인, 지도 검증, 관리자 승인 단계를 한 번에 확인합니다.</p>
               {applications.length === 0 ? (
                 <div className={styles.subtext}>아직 제출한 신청이 없습니다.</div>

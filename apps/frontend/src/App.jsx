@@ -87,6 +87,8 @@ function App() {
         <Route path="/publicweb/:id" element={<PublicWeb />} />
         <Route path="/favoritesweb" element={<ProtectedRoute redirectTo="/loginweb"><FavoritesWeb /></ProtectedRoute>} />
         <Route path="/my-mapweb" element={<ProtectedRoute redirectTo="/loginweb"><MyMapWeb /></ProtectedRoute>} />
+        <Route path="/sharedweb" element={<SharedMap />} />
+        <Route path="/sharedweb/:id" element={<SharedMap />} />
         <Route path="/listweb" element={<ListWeb />} />
         <Route path="/signupweb" element={<SignupWeb />} />
         <Route path="/posweb" element={<ProtectedRoute redirectTo="/loginweb" roles={['OWNER']}><PosWeb /></ProtectedRoute>} />

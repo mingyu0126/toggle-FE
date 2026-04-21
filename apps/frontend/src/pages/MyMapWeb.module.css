@@ -282,24 +282,42 @@
   color: white;
 }
 
-.deleteBtn {
-  position: absolute;
-  top: 1rem;
-  right: 4rem; /* Offset to avoid PC PlaceCard absolute overlays */
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #f87171;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.3rem 0.6rem;
-  border-radius: var(--radius-md);
-  backdrop-filter: blur(4px);
-  cursor: pointer;
-  z-index: 10;
+.cardActions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.65rem;
 }
 
-.deleteBtn:hover {
-  background: rgba(239, 68, 68, 0.3);
+.secondaryActionBtn,
+.dangerActionBtn {
+  min-width: 0;
+  padding: 0.72rem 0.7rem;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.secondaryActionBtn {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.secondaryActionBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.dangerActionBtn {
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+.dangerActionBtn:hover {
+  background: rgba(239, 68, 68, 0.24);
 }
 
 .toggleSwitch {

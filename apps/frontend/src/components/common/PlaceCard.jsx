@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, Clock, MapPin, Star } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import LoginModal from './LoginModal'; // 글로벌 유도 적용을 위해 내포
-import { addFavoriteStore, removeFavoriteStore } from '../../lib/favorites';
-import { getLocalFavorites, isLoggedIn as getIsLoggedIn, updateLocalFavorite } from '../../lib/session';
-import { getStoreLiveStatus } from '../../lib/storeRuntime';
+import { addFavoritePublic, addFavoriteStore, removeFavoritePublic, removeFavoriteStore } from '../../lib/favorites';
+import { isFavoritePlace, isLoggedIn as getIsLoggedIn } from '../../lib/session';
 import styles from './PlaceCard.module.css';
 
 export default function PlaceCard({ place, type = 'STORE', isWeb = false, showFavorite = true, onClick }) {
@@ -15,26 +14,18 @@ export default function PlaceCard({ place, type = 'STORE', isWeb = false, showFa
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const isLoggedIn = getIsLoggedIn();
 
-  const [isFavorite, setIsFavorite] = React.useState(() => {
-    const favs = getLocalFavorites();
-    const key = isStore ? 'stores' : 'publics';
-    return favs[key] ? favs[key].map(String).includes(String(place.id)) : false;
-  });
+  const [isFavorite, setIsFavorite] = React.useState(() => isFavoritePlace(isStore ? 'STORE' : 'PUBLIC', place));
 
-  // 실시간 상태 주입 (점주 POS 연동)
-  const runtimeStoreId = place.internalStoreId ?? place.id;
-  const liveStatus = isStore ? getStoreLiveStatus(runtimeStoreId, place.status) : place.status;
+  const liveStatus = place.status;
 
   React.useEffect(() => {
     const handleFavoritesChanged = () => {
-      const favs = getLocalFavorites();
-      const key = isStore ? 'stores' : 'publics';
-      setIsFavorite(favs[key] ? favs[key].map(String).includes(String(place.id)) : false);
+      setIsFavorite(isFavoritePlace(isStore ? 'STORE' : 'PUBLIC', place));
     };
 
     window.addEventListener('favoritesChanged', handleFavoritesChanged);
     return () => window.removeEventListener('favoritesChanged', handleFavoritesChanged);
-  }, [isStore, place.id]);
+  }, [isStore, place]);
 
   const handleCardClick = (e) => {
     if (onClick) {
@@ -74,8 +65,13 @@ export default function PlaceCard({ place, type = 'STORE', isWeb = false, showFa
             setIsFavorite(true);
           }
         } else {
-          updateLocalFavorite('PUBLIC', place.id, !isFavorite);
-          setIsFavorite(!isFavorite);
+          if (isFavorite) {
+            await removeFavoritePublic(place);
+            setIsFavorite(false);
+          } else {
+            await addFavoritePublic(place);
+            setIsFavorite(true);
+          }
         }
       } catch (error) {
         alert(error.message || '즐겨찾기 처리 중 오류가 발생했습니다.');
@@ -90,9 +86,11 @@ export default function PlaceCard({ place, type = 'STORE', isWeb = false, showFa
   return (
     <div className={styles.card} onClick={handleCardClick}>
       <div className={styles.header}>
-        <div className={styles.titleRow}>
+        <div className={styles.titleBlock}>
           <h3 className={styles.title}>{place.name}</h3>
-          <span className={styles.category}>{place.category}</span>
+          <div className={styles.metaRow}>
+            <span className={styles.category}>{place.category}</span>
+          </div>
         </div>
         {showFavorite && (
           <button 

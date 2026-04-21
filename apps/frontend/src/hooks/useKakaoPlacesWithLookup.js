@@ -1,22 +1,58 @@
 import { useEffect, useState } from 'react';
-import { lookupStoresByExternalPlaceIds } from '../lib/stores';
+import { fetchNearbyVerifiedStores, lookupStoresByExternalPlaceIds } from '../lib/stores';
 import { lookupPublicInstitutions } from '../lib/publicInstitutions';
 import { createMergedPreviewPlace } from '../lib/mappers';
+import {
+  getAggregateCategoryCodes,
+  getAggregateSearchKeywords,
+  getSearchMode,
+  KAKAO_CATEGORY_MAP,
+  matchesUiCategory,
+  normalizeUiCategory,
+} from '../lib/placeCategories';
 
-// 카카오 카테고리 매핑 테이블
-const KAKAO_CATEGORY_MAP = {
-  '음식점': 'FD6',
-  '카페': 'CE7',
-  '편의점': 'CS2',
-  '대형마트': 'MT1',
-  '약국': 'PM9',
-  '병원': 'HP8',
-  '공공기관': 'PO3',
-  '문화시설': 'CT1',
-  '학교': 'SC4',
-  '지하철역': 'SW8',
-  '주차장': 'PK6',
-};
+function runCategorySearch(placesService, categoryCode, searchOptions) {
+  return new Promise((resolve) => {
+    placesService.categorySearch(categoryCode, (data, status) => {
+      if (status === window.kakao.maps.services.Status.OK && data) {
+        resolve(data);
+        return;
+      }
+
+      resolve([]);
+    }, searchOptions);
+  });
+}
+
+function runKeywordSearch(placesService, query, searchOptions) {
+  return new Promise((resolve) => {
+    placesService.keywordSearch(query, (data, status) => {
+      if (status === window.kakao.maps.services.Status.OK && data) {
+        resolve(data);
+        return;
+      }
+
+      resolve([]);
+    }, searchOptions);
+  });
+}
+
+function dedupePlaces(items) {
+  const seen = new Map();
+
+  items.forEach((item) => {
+    const key = item?.id || `${item?.place_name}-${item?.x}-${item?.y}`;
+    if (!seen.has(key)) {
+      seen.set(key, item);
+    }
+  });
+
+  return [...seen.values()];
+}
+
+function sortPlacesByDistance(items) {
+  return [...items].sort((a, b) => Number(a.distance || Number.MAX_SAFE_INTEGER) - Number(b.distance || Number.MAX_SAFE_INTEGER));
+}
 
 /**
  * 카카오 플레이스 검색 결과를 가져오고, 바로 Toggle Backend의 lookup API를 통해
@@ -25,10 +61,12 @@ const KAKAO_CATEGORY_MAP = {
 export function useKakaoPlacesWithLookup(center, keyword, category, options = { radius: 2000, size: 15 }) {
   const [places, setPlaces] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const centerLat = center?.lat;
+  const centerLng = center?.lng;
 
   useEffect(() => {
     // init check
-    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services || !center) {
+    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services || centerLat == null || centerLng == null) {
       return;
     }
 
@@ -36,82 +74,125 @@ export function useKakaoPlacesWithLookup(center, keyword, category, options = { 
     setIsLoading(true);
 
     const ps = new window.kakao.maps.services.Places();
-    const searchOptions = {
-      location: new window.kakao.maps.LatLng(center.lat, center.lng),
+    const baseSearchOptions = {
+      location: new window.kakao.maps.LatLng(centerLat, centerLng),
       sort: window.kakao.maps.services.SortBy.DISTANCE,
       radius: options.radius,
       size: options.size, // default 15
     };
 
-    const handlePlacesSearch = async (data, status) => {
-      if (cancelled) return;
+    const fetchPlaces = async () => {
+      let rawPlaces = [];
 
-      if (status === window.kakao.maps.services.Status.OK && data && data.length > 0) {
-        try {
-          let matchedStores = [];
-          let matchedPublics = [];
+      try {
+        const searchMode = getSearchMode(category, keyword);
+        const categoryCode = KAKAO_CATEGORY_MAP[category];
 
-          if (category === '공공기관') {
-            const requestItems = data.map(item => ({
-              externalPlaceId: item.id,
-              name: item.place_name,
-              address: item.road_address_name || item.address_name,
-              latitude: Number(item.y),
-              longitude: Number(item.x)
-            }));
-            matchedPublics = await lookupPublicInstitutions('KAKAO', requestItems);
-          } else {
-            const externalPlaceIds = data.map(item => item.id);
-            matchedStores = await lookupStoresByExternalPlaceIds('KAKAO', externalPlaceIds);
-          }
-          
-          if (cancelled) return;
-
-          // Merge Kakao data with Toggle Backend data
-          const mergedPlaces = data.map(kakaoItem => {
-            const storeMatch = matchedStores.find(s => s.externalPlaceId === kakaoItem.id);
-            const publicMatch = matchedPublics.find(p => p.externalPlaceId === kakaoItem.id);
-            
-            return createMergedPreviewPlace(kakaoItem, storeMatch, publicMatch, false);
+        if (!keyword?.trim() && category === '전체') {
+          const nearbyStores = await fetchNearbyVerifiedStores({
+            latitude: centerLat,
+            longitude: centerLng,
+            radiusMeters: options.radius,
+            limit: options.size,
           });
 
-          // 내부 카테고리 필터링 (가벼운 프론트엔드 필터)
-          let finalFiltered = mergedPlaces;
-          if (category && category !== '전체') {
-             finalFiltered = mergedPlaces.filter(p => p.category.includes(category) || (p.originalData.category_name || '').includes(category));
-          }
+          if (cancelled) return;
 
-          setPlaces(finalFiltered);
-        } catch (error) {
-          console.error("Lookup failed:", error);
-          if (!cancelled) setPlaces(data.map(item => createMergedPreviewPlace(item, null, null, false)));
+          setPlaces(nearbyStores.map((store) => createMergedPreviewPlace({
+            id: store.externalPlaceId,
+            place_name: store.name,
+            category_group_name: store.categoryName,
+            category_name: store.categoryName,
+            road_address_name: store.roadAddress || store.address,
+            address_name: store.address,
+            phone: store.phone,
+            y: String(store.latitude),
+            x: String(store.longitude),
+            distance: 0,
+          }, store, null, false)));
+          return;
         }
-      } else {
-        if (!cancelled) setPlaces([]);
+
+        if (searchMode === 'keyword') {
+          const keywordOptions = categoryCode
+            ? { ...baseSearchOptions, category_group_code: categoryCode }
+            : baseSearchOptions;
+          rawPlaces = await runKeywordSearch(ps, keyword.trim(), keywordOptions);
+        } else if (searchMode === 'single-category' && categoryCode) {
+          rawPlaces = await runCategorySearch(ps, categoryCode, baseSearchOptions);
+        } else if (searchMode === 'keyword-seed') {
+          const keywordResults = await Promise.all(
+            getAggregateSearchKeywords('기타').map((seed) =>
+              runKeywordSearch(ps, seed, { ...baseSearchOptions, size: Math.min(options.size, 10) })
+            )
+          );
+          rawPlaces = dedupePlaces(keywordResults.flat());
+        } else {
+          const categoryResults = await Promise.all(
+            getAggregateCategoryCodes().map((code) => runCategorySearch(ps, code, baseSearchOptions))
+          );
+          rawPlaces = dedupePlaces(categoryResults.flat());
+        }
+
+        if (cancelled) return;
+
+        if (!rawPlaces.length) {
+          setPlaces([]);
+          return;
+        }
+
+        const publicCandidates = rawPlaces.filter((item) => normalizeUiCategory(item) === '공공기관');
+        const storeCandidates = rawPlaces.filter((item) => normalizeUiCategory(item) !== '공공기관');
+
+        const publicRequestItems = publicCandidates.map((item) => ({
+          externalPlaceId: item.id,
+          name: item.place_name,
+          address: item.road_address_name || item.address_name,
+          latitude: Number(item.y),
+          longitude: Number(item.x),
+        }));
+
+        const [matchedStores, matchedPublics] = await Promise.all([
+          storeCandidates.length
+            ? lookupStoresByExternalPlaceIds('KAKAO', storeCandidates.map((item) => item.id))
+            : Promise.resolve([]),
+          publicRequestItems.length
+            ? lookupPublicInstitutions('KAKAO', publicRequestItems)
+            : Promise.resolve([]),
+        ]);
+
+        if (cancelled) return;
+
+        const mergedPlaces = rawPlaces.map((kakaoItem) => {
+          const storeMatch = matchedStores.find((store) => store.externalPlaceId === kakaoItem.id);
+          const publicMatch = matchedPublics.find((institution) => institution.externalPlaceId === kakaoItem.id);
+
+          return createMergedPreviewPlace(kakaoItem, storeMatch, publicMatch, false);
+        });
+
+        const finalFiltered = sortPlacesByDistance(
+          mergedPlaces.filter((place) => matchesUiCategory(place, category))
+        ).slice(0, options.size);
+
+        setPlaces(finalFiltered);
+      } catch (error) {
+        console.error('Lookup failed:', error);
+        if (!cancelled) {
+          setPlaces([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
-      if (!cancelled) setIsLoading(false);
     };
 
-    // 카테고리 맵핑
-    const categoryCode = KAKAO_CATEGORY_MAP[category];
-    if (categoryCode) {
-      searchOptions.category_group_code = categoryCode;
-    }
-
-    if (keyword && keyword.trim()) {
-      ps.keywordSearch(keyword, handlePlacesSearch, searchOptions);
-    } else {
-      if (categoryCode) {
-        ps.categorySearch(categoryCode, handlePlacesSearch, searchOptions);
-      } else {
-        ps.categorySearch('FD6', handlePlacesSearch, searchOptions);
-      }
-    }
+    fetchPlaces();
 
     return () => {
       cancelled = true;
     };
-  }, [center?.lat, center?.lng, keyword, category, options.radius, options.size]);
+  }, [centerLat, centerLng, keyword, category, options.radius, options.size]);
 
   return { places, isLoading };
 }

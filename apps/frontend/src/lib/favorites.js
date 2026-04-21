@@ -30,7 +30,7 @@ export async function addFavoriteStore(place) {
     headers: getAuthHeaders(),
   });
 
-  updateLocalFavoriteStore(place.id, true);
+  updateLocalFavoriteStore(resolved.storeId, true);
 
   return {
     ...data,
@@ -46,7 +46,7 @@ export async function removeFavoriteStore(place) {
     headers: getAuthHeaders(),
   });
 
-  updateLocalFavoriteStore(place.id, false);
+  updateLocalFavoriteStore(resolved.storeId, false);
 
   return {
     ...data,
@@ -78,7 +78,7 @@ export async function addFavoritePublic(place) {
     headers: getAuthHeaders(),
   });
 
-  updateLocalFavoritePublic(place.id, true);
+  updateLocalFavoritePublic(resolved.id, true);
 
   return {
     ...data,
@@ -101,7 +101,7 @@ export async function removeFavoritePublic(place) {
     headers: getAuthHeaders(),
   });
 
-  updateLocalFavoritePublic(place.id, false);
+  updateLocalFavoritePublic(resolved.id, false);
 
   return {
     ...data,

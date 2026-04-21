@@ -6,8 +6,8 @@ import StatusBadge from '../components/common/StatusBadge';
 import LoginModal from '../components/common/LoginModal'; // 추가
 import ImageCarousel from '../components/common/ImageCarousel';
 import { addFavoriteStore, removeFavoriteStore } from '../lib/favorites';
-import { getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
-import { getStoreLiveStatus, getStoreOperatingInfoByCandidates } from '../lib/storeRuntime';
+import { isFavoritePlace, isLoggedIn as getIsLoggedIn } from '../lib/session';
+import { getStoreOperatingInfoByCandidates } from '../lib/storeRuntime';
 import { useStoreLookupByExternalPlaceId } from '../hooks/useStoreLookupByExternalPlaceId';
 import { mapStoreToPlace } from '../lib/mappers';
 import styles from './StoreDetail.module.css';
@@ -40,7 +40,7 @@ export default function StoreDetail() {
 
   const ownerComment = mergedStore?.ownerNotice || '';
   const ownerImages = mergedStore?.ownerImages || [];
-  const [isFavorite, setIsFavorite] = useState(() => mergedStore ? getLocalFavorites().stores.map(String).includes(String(mergedStore.id)) : false);
+  const [isFavorite, setIsFavorite] = useState(() => mergedStore ? isFavoritePlace('STORE', mergedStore) : false);
 
   // Sheet drag state (Home.jsx와 동일한 100% 레이아웃 형태 복귀)
   const [sheetHeight, setSheetHeight] = useState(55); // 기본 55%
@@ -95,14 +95,12 @@ export default function StoreDetail() {
     };
   }, [isDragging]);
   
-  // mock data lookup
-  const liveStatus = mergedStore ? getStoreLiveStatus(runtimeStoreId, mergedStore.status) : 'UNKNOWN';
-  const store = mergedStore ? { ...mergedStore, status: liveStatus } : null; 
+  const store = mergedStore ? { ...mergedStore, status: mergedStore.status } : null; 
 
   useEffect(() => {
     const syncFavoriteState = () => {
       if (mergedStore) {
-        setIsFavorite(getLocalFavorites().stores.map(String).includes(String(mergedStore.id)));
+        setIsFavorite(isFavoritePlace('STORE', mergedStore));
       }
     };
 

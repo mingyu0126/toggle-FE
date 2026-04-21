@@ -199,6 +199,129 @@
   animation: slideDown 0.3s ease-out;
 }
 
+.sectionAccordionButton {
+  width: 100%;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.sectionAccordionButton:hover {
+  border-color: rgba(59, 130, 246, 0.28);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.sectionAccordionTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.sectionAccordionMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sectionAccordionChevron {
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.sectionAccordionChevronExpanded {
+  transform: rotate(180deg);
+}
+
+.storeSelectorList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.storeSelectorCard {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  padding: 1rem;
+  text-align: left;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.storeSelectorCard:hover {
+  transform: translateY(-1px);
+  border-color: rgba(59, 130, 246, 0.35);
+  box-shadow: var(--shadow-md);
+}
+
+.storeSelectorCard:active {
+  transform: translateY(0);
+}
+
+.storeSelectorCardSelected {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: linear-gradient(180deg, #f0fdf4 0%, #ecfeff 100%);
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.12);
+}
+
+.storeSelectorCardBody {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.storeSelectorText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.storeSelectorNameRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.storeSelectorName {
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.storeSelectorAddress {
+  font-size: 0.92rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.storeSelectorCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #047857;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
 .formGroup {
   display: flex;
   flex-direction: column;
@@ -331,10 +454,23 @@
 
 .applicationTopRow {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.75rem;
+  align-items: flex-start;
+}
+
+.applicationHeaderText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.applicationHeaderMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .applicationBadge {
@@ -353,7 +489,16 @@
 .applicationSummary {
   font-size: 0.92rem;
   color: var(--color-text-secondary);
-  margin-bottom: 0.75rem;
+  margin: 0;
+}
+
+.applicationDetails {
+  padding: 0 1rem 1rem;
+  animation: slideDown 0.2s ease-out;
+}
+
+.applicationDetailsStatic {
+  margin-top: 0.9rem;
 }
 
 .applicationProgressTrack {
@@ -382,4 +527,35 @@
   color: #b91c1c;
   font-weight: 700;
   font-size: 0.88rem;
+}
+
+@media (max-width: 640px) {
+  .storeSelectorCard {
+    padding: 1rem 0.95rem;
+  }
+
+  .storeSelectorCardBody {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .applicationTopRow {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .applicationHeaderMeta {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .sectionAccordionButton {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sectionAccordionMeta {
+    width: 100%;
+    justify-content: space-between;
+  }
 }

@@ -200,6 +200,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
 }
 
 .summaryText {
@@ -210,6 +211,31 @@
 
 .countText {
   color: var(--color-status-green);
+}
+
+.locationSearchBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  background: rgba(59, 130, 246, 0.14);
+  color: #dbeafe;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.locationSearchBtn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.22);
+  border-color: rgba(147, 197, 253, 0.5);
+}
+
+.locationSearchBtn:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .gridContainer {

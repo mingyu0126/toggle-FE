@@ -7,6 +7,21 @@ const CURRENT_USER_KEY = 'currentUser';
 const LOGGED_IN_KEY = 'isLoggedIn';
 const REMEMBER_ME_KEY = 'rememberMe';
 
+function normalizeSessionUser(user = {}) {
+  const mapProfile = user.mapProfile || {};
+
+  return {
+    ...user,
+    type: user.role || user.type,
+    displayName: user.displayName ?? user.nickname ?? user.email?.split('@')?.[0] ?? '',
+    publicMapId: mapProfile.publicMapId ?? user.publicMapId ?? '',
+    isPublicMap: mapProfile.isPublic ?? user.isPublicMap ?? false,
+    mapTitle: mapProfile.title ?? user.mapTitle ?? '',
+    mapDesc: mapProfile.description ?? user.mapDesc ?? '',
+    profileImage: mapProfile.profileImageUrl ?? user.profileImage ?? null,
+  };
+}
+
 function dispatchSessionEvent(type, detail = {}) {
   window.dispatchEvent(new CustomEvent(type, { detail }));
 }
@@ -48,7 +63,7 @@ export function getAuthHeaders() {
 
 export function persistAuthSession(authData, options = {}) {
   const { rememberMe = false } = options;
-  const user = authData?.user || {};
+  const user = normalizeSessionUser(authData?.user || {});
 
   localStorage.setItem(ACCESS_TOKEN_KEY, authData.accessToken || '');
   localStorage.setItem(REFRESH_TOKEN_KEY, authData.refreshToken || '');
@@ -57,9 +72,8 @@ export function persistAuthSession(authData, options = {}) {
   localStorage.setItem(
     CURRENT_USER_KEY,
     JSON.stringify({
-      ...getCurrentUser(),
+      ...normalizeSessionUser(getCurrentUser()),
       ...user,
-      type: user.role,
     })
   );
 
@@ -67,10 +81,10 @@ export function persistAuthSession(authData, options = {}) {
 }
 
 export function updateCurrentUser(fields) {
-  const updatedUser = {
-    ...getCurrentUser(),
+  const updatedUser = normalizeSessionUser({
+    ...normalizeSessionUser(getCurrentUser()),
     ...fields,
-  };
+  });
 
   localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
   dispatchSessionEvent('authChanged', { loggedIn: isLoggedIn(), user: updatedUser });
@@ -97,7 +111,6 @@ export async function restoreAuthSession() {
     const user = await fetchMe(accessToken);
     updateCurrentUser({
       ...user,
-      type: user.role,
     });
     return user;
   } catch {
@@ -134,6 +147,32 @@ export function getLocalFavorites() {
   };
 }
 
+export function syncLocalFavoritesSnapshot(snapshot = {}, options = {}) {
+  const { dispatch = false } = options;
+  const nextFavorites = {
+    stores: Array.from(new Set((snapshot.stores || []).map((id) => String(id)).filter(Boolean))),
+    publics: Array.from(new Set((snapshot.publics || []).map((id) => String(id)).filter(Boolean))),
+  };
+
+  const currentUser = normalizeSessionUser(getCurrentUser());
+  localStorage.setItem(
+    CURRENT_USER_KEY,
+    JSON.stringify({
+      ...currentUser,
+      favorites: nextFavorites,
+    })
+  );
+
+  if (dispatch) {
+    dispatchSessionEvent('favoritesChanged', {
+      stores: nextFavorites.stores,
+      publics: nextFavorites.publics,
+    });
+  }
+
+  return nextFavorites;
+}
+
 export function updateLocalFavorite(type, placeId, favorited) {
   const favorites = getLocalFavorites();
   const targetId = String(placeId);
@@ -157,6 +196,25 @@ export function updateLocalFavorite(type, placeId, favorited) {
   });
 
   return updatedUser;
+}
+
+export function getFavoritePlaceId(type, place) {
+  if (!place) {
+    return '';
+  }
+
+  if (type === 'PUBLIC') {
+    return String(place.internalId ?? place.id ?? '');
+  }
+
+  return String(place.internalStoreId ?? place.storeId ?? place.id ?? '');
+}
+
+export function isFavoritePlace(type, place) {
+  const favorites = getLocalFavorites();
+  const key = type === 'PUBLIC' ? 'publics' : 'stores';
+  const targetId = getFavoritePlaceId(type, place);
+  return Boolean(targetId) && (favorites[key] || []).map(String).includes(targetId);
 }
 
 export function updateLocalFavoriteStore(placeId, favorited) {

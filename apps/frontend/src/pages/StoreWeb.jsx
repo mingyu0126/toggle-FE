@@ -8,8 +8,8 @@ import {
 import StatusBadge from '../components/common/StatusBadge';
 import ImageCarousel from '../components/common/ImageCarousel';
 import { addFavoriteStore, removeFavoriteStore } from '../lib/favorites';
-import { clearAuthSession, getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
-import { getStoreLiveStatus, getStoreOperatingInfoByCandidates } from '../lib/storeRuntime';
+import { clearAuthSession, getCurrentUser, isFavoritePlace, isLoggedIn as getIsLoggedIn } from '../lib/session';
+import { getStoreOperatingInfoByCandidates } from '../lib/storeRuntime';
 import { useStoreLookupByExternalPlaceId } from '../hooks/useStoreLookupByExternalPlaceId';
 import { mapStoreToPlace } from '../lib/mappers';
 import styles from './StoreWeb.module.css';
@@ -32,20 +32,19 @@ export default function StoreWeb() {
     businessHours: operatingInfo ? `${operatingInfo.openTime} - ${operatingInfo.closeTime}` : baseStore.businessHours,
     hasBreakTime: operatingInfo ? true : baseStore.hasBreakTime,
     breakTime: operatingInfo ? `${operatingInfo.breakStart} - ${operatingInfo.breakEnd}` : baseStore.breakTime,
-    status: getStoreLiveStatus(runtimeStoreId, baseStore.status),
+    status: baseStore.status,
   } : null;
 
   const store = mergedStore;
   const ownerComment = store?.ownerNotice || '';
   const ownerImages = store?.ownerImages || [];
-  const [isFavorite, setIsFavorite] = useState(() => store ? getLocalFavorites().stores.map(String).includes(String(store.id)) : false);
+  const [isFavorite, setIsFavorite] = useState(() => store ? isFavoritePlace('STORE', store) : false);
   const [isFavoriteSubmitting, setIsFavoriteSubmitting] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
   const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
 
   // Map control states
   const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [myLocation, setMyLocation] = useState(null);
 
   // Search State
@@ -70,7 +69,7 @@ export default function StoreWeb() {
   useEffect(() => {
     const syncFavoriteState = () => {
       if (store) {
-        setIsFavorite(getLocalFavorites().stores.map(String).includes(String(store.id)));
+        setIsFavorite(isFavoritePlace('STORE', store));
       }
     };
 
@@ -294,7 +293,7 @@ export default function StoreWeb() {
           setMapCenter(loc);
           setMyLocation(loc);
         },
-        (error) => {
+        () => {
           alert('현위치를 가져올 수 없습니다. 권한을 확인해주세요.');
         }
       );
@@ -491,7 +490,6 @@ export default function StoreWeb() {
               center={mapCenter}
               style={{ width: '100%', height: '100%', borderRadius: '16px' }}
               level={4}
-              onCreate={() => setIsMapLoaded(true)}
             >
               {/* Store 마커 (스마트 핀) - 검색 결과가 없을 때만 현재 상점 렌더링 */}
               {searchMarkers.length === 0 && !selectedPlace && (

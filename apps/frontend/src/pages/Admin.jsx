@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   LogOut, ShieldCheck, Users, Store, Activity, 
   AlertTriangle, List, Plus, Trash2, Edit, Check, X 
 } from 'lucide-react';
 import StatusBadge from '../components/common/StatusBadge';
-import { lookupStoresByExternalPlaceIds } from '../lib/stores';
-import { lookupPublicInstitutions } from '../lib/publicInstitutions';
 import styles from './Admin.module.css';
 
 export default function Admin() {
@@ -15,14 +13,6 @@ export default function Admin() {
 
   const [stores, setStores] = useState([]);
   const [publics, setPublics] = useState([]);
-...
-  useEffect(() => {
-    // Admin typically needs all data, but for now we'll just leave it empty or 
-    // fetch a sample if we had such API.
-    // To satisfy migration, we remove mock imports.
-    setStores([]);
-    setPublics([]);
-  }, []);
   
   // 필터링 상태 (전국 시/도 단위 확장)
   const [selectedRegion, setSelectedRegion] = useState('전체');

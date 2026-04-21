@@ -23,3 +23,24 @@ export async function lookupPublicInstitutions(externalSource, requestItems) {
 
   return data.institutions || [];
 }
+
+export async function fetchPublicInstitutionsByIds(ids = []) {
+  const normalizedIds = [...new Set(
+    (ids || [])
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id))
+  )];
+
+  if (normalizedIds.length === 0) {
+    return [];
+  }
+
+  const params = new URLSearchParams();
+  normalizedIds.forEach((id) => params.append('ids', String(id)));
+
+  const data = await apiRequest(`/api/v1/public-institutions?${params.toString()}`, {
+    method: 'GET',
+  });
+
+  return data.institutions || [];
+}

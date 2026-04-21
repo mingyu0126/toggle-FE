@@ -445,37 +445,27 @@ export default function AdminWeb() {
       </header>
 
       <main className={styles.main}>
-        <section className={styles.hero}>
-          <div className={styles.heroCopy}>
-            <span className={styles.heroEyebrow}>Store Registration Review</span>
-            <h2>전국 자동 사업자 검증과 실영업주소 기반 카카오 저장 여부를 한 화면에서 확인하는 운영 콘솔</h2>
-            <p>
-              사업자 검증과 카카오맵 검증이 모두 완료된 신청만 승인할 수 있습니다.
-              전국 주소를 국세청으로 자동 검증하고, 카카오는 점주가 입력한 실영업주소로 조회합니다.
-            </p>
-          </div>
-          <div className={styles.statsGrid}>
-            <article className={styles.statCard}>
-              <div className={styles.statLabel}><Clock3 size={16} /> 접수됨</div>
-              <strong>{stats.pending}</strong>
-              <span>새로 들어온 신청</span>
-            </article>
-            <article className={styles.statCard}>
-              <div className={styles.statLabel}><Activity size={16} /> 검토중</div>
-              <strong>{stats.underReview}</strong>
-              <span>검증 또는 관리자 검토가 진행 중인 신청</span>
-            </article>
-            <article className={styles.statCard}>
-              <div className={styles.statLabel}><CheckCircle2 size={16} /> 승인 가능</div>
-              <strong>{stats.approvalReady}</strong>
-              <span>두 검증이 완료되어 승인 버튼을 누를 수 있는 신청</span>
-            </article>
-            <article className={styles.statCard}>
-              <div className={styles.statLabel}><Store size={16} /> 승인 완료</div>
-              <strong>{stats.approved}</strong>
-              <span>최종 승인까지 끝난 신청</span>
-            </article>
-          </div>
+        <section className={styles.summaryStrip}>
+          <article className={styles.statCard}>
+            <div className={styles.statLabel}><Clock3 size={16} /> 접수됨</div>
+            <strong>{stats.pending}</strong>
+            <span>새로 들어온 신청</span>
+          </article>
+          <article className={styles.statCard}>
+            <div className={styles.statLabel}><Activity size={16} /> 검토중</div>
+            <strong>{stats.underReview}</strong>
+            <span>검증 또는 관리자 검토가 진행 중인 신청</span>
+          </article>
+          <article className={styles.statCard}>
+            <div className={styles.statLabel}><CheckCircle2 size={16} /> 승인 가능</div>
+            <strong>{stats.approvalReady}</strong>
+            <span>두 검증이 끝나 승인 가능한 신청</span>
+          </article>
+          <article className={styles.statCard}>
+            <div className={styles.statLabel}><Store size={16} /> 승인 완료</div>
+            <strong>{stats.approved}</strong>
+            <span>최종 승인까지 끝난 신청</span>
+          </article>
         </section>
 
         <section className={styles.workspace}>

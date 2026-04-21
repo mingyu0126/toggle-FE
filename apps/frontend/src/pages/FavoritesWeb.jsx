@@ -6,9 +6,10 @@ import {
 } from 'lucide-react';
 import PlaceCard from '../components/common/PlaceCard';
 import { fetchFavoriteStores } from '../lib/favorites';
-import { lookupPublicInstitutions } from '../lib/publicInstitutions';
+import { fetchPublicInstitutionsByIds } from '../lib/publicInstitutions';
 import { mapStoreToPlace, mapPublicToPlace } from '../lib/mappers';
-import { clearAuthSession, getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
+import { addMyMapPublic, addMyMapStore } from '../lib/myMap';
+import { clearAuthSession, getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn, syncLocalFavoritesSnapshot } from '../lib/session';
 import styles from './FavoritesWeb.module.css';
 
 export default function FavoritesWeb() {
@@ -17,7 +18,6 @@ export default function FavoritesWeb() {
   const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
   const [favoriteStores, setFavoriteStores] = useState([]);
   const [favoritePublics, setFavoritePublics] = useState([]);
-  const [favoritePublicIds, setFavoritePublicIds] = useState(() => getLocalFavorites().publics || []);
   const [myLocation, setMyLocation] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
   const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
@@ -42,12 +42,17 @@ export default function FavoritesWeb() {
         }),
         Promise.resolve(getLocalFavorites())
       ]);
-      
+
+      syncLocalFavoritesSnapshot({
+        stores: storeItems.map((item) => item.storeId),
+        publics: latestFavorites.publics || [],
+      });
+
       setFavoriteStores(storeItems.map(mapStoreToPlace));
       
       if (latestFavorites.publics?.length > 0) {
         try {
-          const publicItems = await lookupPublicInstitutions('KAKAO', latestFavorites.publics);
+          const publicItems = await fetchPublicInstitutionsByIds(latestFavorites.publics);
           setFavoritePublics(publicItems.map(mapPublicToPlace));
         } catch (err) {
           console.error('Publics load failed:', err);
@@ -56,7 +61,7 @@ export default function FavoritesWeb() {
       } else {
         setFavoritePublics([]);
       }
-    } catch (loadError) {
+    } catch {
       setError('장소를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
@@ -65,14 +70,12 @@ export default function FavoritesWeb() {
 
   useEffect(() => {
     loadFavorites();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     const handleFavoritesChanged = () => {
       setIsLoggedIn(getIsLoggedIn());
       setCurrentUser(getCurrentUser());
-      setFavoritePublicIds(getLocalFavorites().publics || []);
       loadFavorites();
     };
 
@@ -84,7 +87,6 @@ export default function FavoritesWeb() {
     const syncAuthState = () => {
       setIsLoggedIn(getIsLoggedIn());
       setCurrentUser(getCurrentUser());
-      setFavoritePublicIds(getLocalFavorites().publics || []);
       loadFavorites();
     };
 
@@ -133,6 +135,19 @@ export default function FavoritesWeb() {
     }
   };
 
+  const handleAddToMyMap = async (item) => {
+    try {
+      if (item.type === 'STORE') {
+        await addMyMapStore(item.internalStoreId);
+      } else {
+        await addMyMapPublic(item.internalId);
+      }
+      alert('내 지도에 추가되었습니다.');
+    } catch (addError) {
+      alert(addError.message || '내 지도에 추가하는 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleLogout = () => {
     clearAuthSession();
     navigate('/loginweb');
@@ -177,7 +192,7 @@ export default function FavoritesWeb() {
           <div className={styles.sidebarHeader}>
             <div className={styles.sidebarTitleWrap}>
               <h1 className={styles.sidebarTitle}>저장한 장소</h1>
-              <p className={styles.sidebarSubtitle}>서버에 저장된 매장 즐겨찾기와 공공기관 저장 목록을 함께 보여줍니다.</p>
+              <p className={styles.sidebarSubtitle}>즐겨찾기는 서버 favorites만 보여주고, 내 지도 추가는 별도 컬렉션으로 저장합니다.</p>
             </div>
           </div>
 
@@ -198,8 +213,18 @@ export default function FavoritesWeb() {
             )}
 
             {isLoggedIn && !isLoading && !error && filteredItems.map((item) => (
-              <div key={`${item.type}-${item.internalStoreId || item.id}`} onClick={() => focusPlace(item)}>
+              <div key={`${item.type}-${item.internalStoreId || item.id}`} className={styles.cardActionBlock} onClick={() => focusPlace(item)}>
                 <PlaceCard place={item} type={item.type} isWeb />
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleAddToMyMap(item);
+                  }}
+                  className={styles.addToMyMapBtn}
+                >
+                  내 지도에 추가
+                </button>
               </div>
             ))}
           </div>

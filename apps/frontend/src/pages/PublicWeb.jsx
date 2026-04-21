@@ -20,12 +20,9 @@ export default function PublicWeb() {
 
   // Map control states
   const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const [myLocation, setMyLocation] = useState(null);
 
   // Search State
   const [keyword, setKeyword] = useState('');
-  const [searchMarkers, setSearchMarkers] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -120,13 +117,12 @@ export default function PublicWeb() {
     const timer = setTimeout(() => {
       if (window.kakao && window.kakao.maps && window.kakao.maps.services) {
         const ps = new window.kakao.maps.services.Places();
-        const center = myLocation || mapCenter;
         ps.keywordSearch(keyword, (data, status) => {
           if (status === window.kakao.maps.services.Status.OK) {
             setSuggestions(data);
             setIsDropdownOpen(true);
           }
-        }, { location: new window.kakao.maps.LatLng(center.lat, center.lng) });
+        }, { location: new window.kakao.maps.LatLng(mapCenter.lat, mapCenter.lng) });
       }
     }, 300);
 
@@ -315,8 +311,8 @@ export default function PublicWeb() {
 
         <div className={styles.contentArea}>
           <main className={styles.mapArea}>
-            <Map center={mapCenter} style={{ width: '100%', height: '100%', borderRadius: '16px' }} level={4} onCreate={() => setIsMapLoaded(true)}>
-              {searchMarkers.length === 0 && !selectedPlace && (
+            <Map center={mapCenter} style={{ width: '100%', height: '100%', borderRadius: '16px' }} level={4}>
+              {!selectedPlace && (
                 <CustomOverlayMap position={mapCenter} yAnchor={1} zIndex={100}>
                   <div className={styles.markerPlaceholder}>
                     <div className={styles.markerBaloon}>
