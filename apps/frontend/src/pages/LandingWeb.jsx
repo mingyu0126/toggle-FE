@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store, Users, MapPin, Search, Navigation, ChevronRight, Lock } from 'lucide-react';
+import { Store, MapPin, Search, Navigation, ChevronRight, Lock } from 'lucide-react';
+import toggleLogo from '../assets/logo.png';
 import styles from './LandingWeb.module.css';
 
 export default function LandingWeb() {
@@ -29,8 +30,8 @@ export default function LandingWeb() {
       {/* 글로벌 네비게이션 바 */}
       <nav className={`${styles.navbar} ${scrollY > 50 ? styles.navScrolled : ''}`}>
         <div className={styles.logoGroup} onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
-          <Store size={28} className={styles.logoIcon} />
-          <span className={styles.logoText}>Toggle PC</span>
+          <img src={toggleLogo} alt="Toggle logo" className={styles.logoMark} />
+          <span className={styles.logoText}>Toggle</span>
         </div>
         <div className={styles.navLinks}>
           <button className={styles.navLinkBtn} onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>서비스 소개</button>
@@ -64,14 +65,14 @@ export default function LandingWeb() {
           </div>
           
           <h1 className={styles.title}>
-            지금 당신이 <br />
-            방문할 수 있는지, <br />
-            <span className={styles.highlight}>미리 알고 출발하세요.</span>
+            <span className={styles.highlight}>
+              지금, 열려있는 공간을 <br />
+              공유하다
+            </span>
           </h1>
           
           <p className={styles.subtitle}>
-            헛걸음은 이제 그만. Toggle은 점포의 실제 영업 상태와<br/>
-            공공기관의 실시간 혼잡도를 지도를 통해 정확히 보여줍니다.
+            Toggle은 점포의 실제 영업 상태를 지도를 통해 정확히 보여줍니다.
           </p>
 
           <div className={styles.ctaGroup}>
@@ -103,14 +104,6 @@ export default function LandingWeb() {
 
           <div className={styles.featureCard}>
             <div className={styles.iconBoxTop}>
-              <Users size={32} />
-            </div>
-            <h3>공공기관 혼잡도</h3>
-            <p>시청 주민센터, 도서관 등 관공서의 예상 대기시간과 번호표 현황을 파악하세요.</p>
-          </div>
-
-          <div className={styles.featureCard}>
-            <div className={styles.iconBoxTop}>
               <MapPin size={32} />
             </div>
             <h3>스마트 핀 기반 맵</h3>
@@ -123,8 +116,7 @@ export default function LandingWeb() {
       <footer className={styles.footer}>
         <div className={styles.footerContent}>
           <div className={styles.footerBrand}>
-            <Store size={24} className={styles.logoIcon} />
-            <span className={styles.logoText}>Toggle</span>
+            <img src={toggleLogo} alt="Toggle logo" className={styles.logoMarkSmall} />
           </div>
           <div className={styles.footerLinks}>
             <a href="#">서비스 약관</a>

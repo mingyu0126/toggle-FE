@@ -75,7 +75,7 @@ export default function Login() {
             className={`${styles.tab} ${loginType === 'OWNER' ? styles.active : ''}`}
             onClick={() => setLoginType('OWNER')}
           >
-            <Store size={18} /> 점주 (POS)
+            <Store size={18} /> 점주
           </div>
         </div>
 
@@ -129,7 +129,7 @@ export default function Login() {
             disabled={isSubmitting}
             className={`${styles.submitBtn} ${loginType === 'OWNER' ? styles.ownerBtn : ''} ${styles.formElement}`}
           >
-            {isSubmitting ? '처리 중...' : (loginType === 'USER' ? '로그인' : 'POS Dashboard 접근')} <ChevronRight size={20} strokeWidth={3} />
+            {isSubmitting ? '처리 중...' : '로그인'} <ChevronRight size={20} strokeWidth={3} />
           </button>
         </form>
 
