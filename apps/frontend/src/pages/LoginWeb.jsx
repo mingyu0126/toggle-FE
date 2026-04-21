@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Lock, Store, ChevronRight, Navigation } from 'lucide-react';
 import { login } from '../lib/auth';
 import { persistAuthSession } from '../lib/session';
+import toggleLogo from '../assets/logo.png';
 import styles from './LoginWeb.module.css';
 
 export default function LoginWeb() {
@@ -60,28 +61,19 @@ export default function LoginWeb() {
         
         <div className={styles.graphicContent}>
           <div className={styles.logoGroup} onClick={() => navigate('/web')}>
-            <Store size={36} className={styles.logoIcon} />
-            <span className={styles.logoText}>Toggle PC</span>
+            <img src={toggleLogo} alt="Toggle logo" className={styles.logoMark} />
+            <span className={styles.logoText}>Toggle</span>
           </div>
           
           <h1 className={styles.graphicTitle}>
-            실시간으로 연결되는 <br />
-            당신의 동네.
+            지금, 열려있는 공간을 <br />
+            공유하다
           </h1>
           <p className={styles.graphicDesc}>
             포털 지도보다 더 생생하고 빠른 정보를 만나보세요. <br />
             가입 한 번으로 나만의 장소와 길찾기를 모두 연동할 수 있습니다.
           </p>
           
-          <div className={styles.testimonial}>
-            <div className={styles.avatarGroup}>
-              <div className={styles.avatar} style={{backgroundImage: 'url(https://i.pravatar.cc/100?img=1)'}} />
-              <div className={styles.avatar} style={{backgroundImage: 'url(https://i.pravatar.cc/100?img=2)', marginLeft: '-15px'}} />
-              <div className={styles.avatar} style={{backgroundImage: 'url(https://i.pravatar.cc/100?img=3)', marginLeft: '-15px'}} />
-              <div className={styles.avatarCount}>+2K</div>
-            </div>
-            <p>매달 2천명 이상의 사용자가 새롭게 합류하고 있습니다.</p>
-          </div>
         </div>
       </div>
 
@@ -111,7 +103,7 @@ export default function LoginWeb() {
               className={`${styles.tab} ${loginType === 'OWNER' ? styles.active : ''}`}
               onClick={() => setLoginType('OWNER')}
             >
-              <Store size={18} /> 매장 점주
+            <Store size={18} /> 매장 점주
             </div>
           </div>
 
@@ -161,7 +153,7 @@ export default function LoginWeb() {
               disabled={isSubmitting}
               className={`${styles.submitBtn} ${loginType === 'OWNER' ? styles.ownerBtn : ''}`}
             >
-              {isSubmitting ? '처리 중...' : (loginType === 'USER' ? '로그인' : 'POS Dashboard 접근')} <ChevronRight size={20} strokeWidth={3} />
+              {isSubmitting ? '처리 중...' : '로그인'} <ChevronRight size={20} strokeWidth={3} />
             </button>
           </form>
 

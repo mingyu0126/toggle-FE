@@ -79,6 +79,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<Navigate to="/web" replace />} />
         {/* 데스크탑 웹 전용 풀스크린 레이아웃 라우트 */}
         <Route path="/web" element={<LandingWeb />} />
         <Route path="/loginweb" element={<LoginWeb />} />

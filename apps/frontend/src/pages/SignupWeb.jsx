@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Store, ChevronRight, Navigation, Mail } from 'lucide-react';
 import { signup } from '../lib/auth';
+import toggleLogo from '../assets/logo.png';
 import styles from './LoginWeb.module.css'; // 디자인 테마 공유
 
 export default function SignupWeb() {
@@ -59,8 +60,8 @@ export default function SignupWeb() {
         
         <div className={styles.graphicContent}>
           <div className={styles.logoGroup} onClick={() => navigate('/web')}>
-            <Store size={36} className={styles.logoIcon} />
-            <span className={styles.logoText}>Toggle PC</span>
+            <img src={toggleLogo} alt="Toggle logo" className={styles.logoMark} />
+            <span className={styles.logoText}>Toggle</span>
           </div>
           <h1 className={styles.graphicTitle}>
             {loginType === 'USER' ? '더 빠르고 정확하게, \n당신의 일상을 토글하세요.' : '점주 파트너가 되어 \n매장을 스마트하게 운영하세요.'}

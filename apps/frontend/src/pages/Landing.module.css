@@ -38,13 +38,29 @@
 }
 
 .logo {
-  font-size: 1.75rem;
-  font-weight: 900;
-  background: linear-gradient(135deg, #ffffff, #93c5fd);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   letter-spacing: -1px;
+  width: auto;
+}
+
+.logoMark {
+  width: auto;
+  height: 42px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  flex-shrink: 0;
+}
+
+.logoText {
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #b9d6ff;
+  text-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 .navLinks {

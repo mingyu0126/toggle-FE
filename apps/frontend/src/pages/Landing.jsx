@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Map, MapPin, Store, Users, Search, ChevronRight, Navigation } from 'lucide-react';
+import { Map, MapPin, Store, Search, ChevronRight, Navigation } from 'lucide-react';
+import toggleLogo from '../assets/logo.png';
 import styles from './Landing.module.css';
 
 export default function Landing() {
@@ -34,7 +35,10 @@ export default function Landing() {
       <div className={styles.mapBackground} />
 
       <header className={styles.header}>
-        <div className={styles.logo} onClick={handleLogoClick} style={{ cursor: 'pointer' }}>Toggle</div>
+        <div className={styles.logo} onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
+          <img src={toggleLogo} alt="Toggle logo" className={styles.logoMark} />
+          <span className={styles.logoText}>Toggle</span>
+        </div>
         <div className={styles.navLinks}>
           <button className={styles.loginBtn} onClick={() => navigate('/login')}>
             로그인 / 회원가입
@@ -55,7 +59,7 @@ export default function Landing() {
 
         <p className={styles.subtitle}>
           포털 지도에서 헛걸음하셨나요? <br/>
-          Toggle은 점포의 실제 영업 상태와 공공기관 혼잡도를 실시간으로 반영합니다.
+          Toggle은 점포의 실제 영업 상태를 실시간으로 반영합니다.
         </p>
 
         <div className={styles.ctaGroup}>
@@ -74,12 +78,6 @@ export default function Landing() {
               <Store size={24} />
             </div>
             <span>실시간 영업 상태</span>
-          </div>
-          <div className={styles.featureItem}>
-            <div className={styles.featureIcon}>
-              <Users size={24} />
-            </div>
-            <span>공공기관 혼잡도</span>
           </div>
           <div className={styles.featureItem}>
             <div className={styles.featureIcon}>
