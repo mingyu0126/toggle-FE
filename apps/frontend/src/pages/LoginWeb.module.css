@@ -54,32 +54,39 @@
 }
 
 .logoGroup {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.4rem;
   cursor: pointer;
   margin-bottom: auto;
+  width: auto;
 }
 
-.logoIcon {
-  color: #60a5fa;
+.logoMark {
+  width: auto;
+  height: 44px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  flex-shrink: 0;
 }
 
 .logoText {
-  font-size: 1.75rem;
-  font-weight: 900;
-  background: linear-gradient(135deg, #ffffff, #93c5fd);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #dbeafe;
+  text-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
 .graphicTitle {
-  font-size: 4rem;
+  font-size: clamp(3rem, 5vw, 4rem);
   font-weight: 900;
   line-height: 1.2;
   margin-bottom: 2rem;
   letter-spacing: -1px;
+  max-width: 16ch;
 }
 
 .graphicDesc {

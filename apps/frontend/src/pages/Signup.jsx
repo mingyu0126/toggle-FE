@@ -74,7 +74,7 @@ export default function Signup() {
             className={`${styles.tab} ${loginType === 'OWNER' ? styles.active : ''}`}
             onClick={() => setLoginType('OWNER')}
           >
-            <Store size={18} /> 점주 (POS)
+            <Store size={18} /> 점주
           </div>
         </div>
 
