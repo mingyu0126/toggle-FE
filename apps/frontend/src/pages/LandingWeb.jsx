@@ -6,7 +6,7 @@ import styles from './LandingWeb.module.css';
 export default function LandingWeb() {
   const navigate = useNavigate();
   const [scrollY, setScrollY] = useState(0);
-  const [clickCount, setClickCount] = useState(0); // 이스터에그 카운트
+  const [, setClickCount] = useState(0); // 이스터에그 카운트
 
   const handleLogoClick = () => {
     setClickCount(prev => {

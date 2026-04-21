@@ -5,7 +5,7 @@ import styles from './Landing.module.css';
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [clickCount, setClickCount] = useState(0);
+  const [, setClickCount] = useState(0);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
 

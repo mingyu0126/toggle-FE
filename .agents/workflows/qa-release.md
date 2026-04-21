@@ -1,201 +1,41 @@
 ---
-description: End-to-end QA and release validation workflow for Toggle, ensuring role-based access control, status consistency, and regression safety before deployment.
+description: QA and release checkpoint router under Main Agent orchestration, with separate quality and release ownership.
 ---
 
-# QA & Release Workflow (Toggle)
+# QA And Release
 
-## Purpose
-Use this workflow before releasing a feature or deploying to production.
+This workflow starts after implementation exists and after `Main Agent` has authorized review.
 
-This workflow ensures:
-- user flow correctness
-- permission safety
-- status consistency
-- regression prevention
+Required order:
 
----
+1. `main-agent-orchestration.md`
+2. `04-code-review.md`
+3. `05-finish-branch.md`
 
-## Input
+## QA Reviewer Responsibilities
 
-- implemented feature
-- related PRD
-- API contract
-- test scenarios
-- check existing handoff artifacts before running QA
+- functional QA
+- code review against approved design and plan
+- permission and regression checks
+- contract drift checks between frontend and backend
+- findings capture in `handoff/qa/{feature}-qa.md`
 
----
+QA output informs `Quality Gate`, but QA Reviewer does not close that gate independently.
 
-## 🚨 MANDATORY RULES
+## DevOps Responsibilities
 
-- MUST follow qa-rules.md
-- MUST test by role:
-  - Guest
-  - Member
-  - Owner
-  - Admin
-- MUST validate real user flows
-- MUST check cross-screen consistency
+- build verification
+- test verification
+- CI/CD and deployment impact review
+- branch disposition readiness review
+- release note capture when needed in `handoff/qa/{feature}-release.md` or `handoff/eng-review/{feature}-release.md`
 
----
+DevOps output informs `Release Gate`, but DevOps does not close that gate independently.
 
-## Execution Steps
+## Required Checks
 
-### 1. Load Test Scenarios
-
-Use:
-→ `generate-test-scenarios` (if missing)
-
-Ensure scenarios include:
-- happy path
-- edge cases
-- negative cases
-- regression points
-
----
-
-### 2. Execute Core User Flows
-
-#### Guest
-- map browsing works
-- search works
-- filter works
-- store detail loads
-- login is NOT required
-
-#### Member
-- favorite add/remove works
-- personal map create/edit/delete works
-- visibility (public/private) works
-
-#### Owner
-- can update own store status
-- cannot update others
-- status updates correctly reflected
-
-#### Admin
-- admin endpoints accessible only to admin
-- moderation behaves correctly
-
----
-
-### 3. Permission Validation (CRITICAL)
-
-Verify:
-
-- guest cannot access member endpoints
-- member cannot access owner endpoints
-- owner cannot modify other stores
-- non-admin cannot access admin features
-
-Expected:
-- 401 Unauthorized
-- 403 Forbidden
-
----
-
-### 4. Status Consistency Check (CRITICAL)
-
-When store status changes:
-
-Verify consistency across:
-
-- map
-- list
-- store detail
-
-❗ MUST match everywhere
-
----
-
-### 5. Status Transition Validation
-
-Check:
-
-- valid transitions succeed
-- invalid transitions return 409 Conflict
-
----
-
-### 6. Edge Case Testing
-
-Test:
-
-- no stores in range
-- empty search results
-- no favorites
-- no maps
-- deleted store access
-- private map access denied
-- API failure handling
-
----
-
-### 7. Regression Checks
-
-Verify:
-
-- existing features still work
-- favorites not broken
-- map filtering still accurate
-- status display correct
-
----
-
-### 8. Code / Logic Review
-
-Use:
-→ `gstack-review`
-
-Check:
-
-- missing validation
-- incorrect assumptions
-- logic inconsistencies
-
----
-
-### 9. Final Release Checklist
-
-Ensure:
-
-- all tests passed
-- no critical bugs
-- permission rules enforced
-- API responses consistent
-- no breaking changes
-- CI/CD and deployment readiness reviewed with `github-actions-cicd` if release setup changed
-
----
-
-## Output
-
-- QA result summary
-- release-ready status
-
-Save to:
-```
-handoff/qa/{feature-name}-qa-report.md
-```
-
----
-
-## Naming Convention
-
-- {feature-name} must be:
-  - lowercase
-  - kebab-case
-  - descriptive
-
-Examples:
-- store-status-update
-- favorite-store
-- personal-map-create
-
----
-
-## Notes
-
-- Do NOT skip permission checks
-- Do NOT skip status consistency checks
-- Do NOT rely only on happy path
-- Always test real user scenarios
+- role and permission regressions
+- contract drift between frontend and backend
+- repo-appropriate verification commands
+- release/merge/keep/discard branch decision readiness
+- documentation currency for `handoff/` and `daily-log/YYYY-MM-DD.md`

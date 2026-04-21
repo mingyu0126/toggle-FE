@@ -1,0 +1,60 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - img "Restaurant and Cafe" [ref=e6]
+    - generic [ref=e7]:
+      - generic [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+        - generic [ref=e13]: Toggle PC
+      - heading "실시간으로 연결되는 당신의 동네." [level=1] [ref=e14]:
+        - text: 실시간으로 연결되는
+        - text: 당신의 동네.
+      - paragraph [ref=e15]:
+        - text: 포털 지도보다 더 생생하고 빠른 정보를 만나보세요.
+        - text: 가입 한 번으로 나만의 장소와 길찾기를 모두 연동할 수 있습니다.
+      - generic [ref=e16]:
+        - generic [ref=e21]: +2K
+        - paragraph [ref=e22]: 매달 2천명 이상의 사용자가 새롭게 합류하고 있습니다.
+  - generic [ref=e24]:
+    - button "홈페이지로" [ref=e25] [cursor=pointer]:
+      - img [ref=e26]
+      - text: 홈페이지로
+    - heading "환영합니다 👋" [level=2] [ref=e28]
+    - paragraph [ref=e29]: 계속하려면 로그인해 주세요.
+    - generic [ref=e30]:
+      - generic [ref=e32] [cursor=pointer]:
+        - img [ref=e33]
+        - text: 일반 사용자
+      - generic [ref=e36] [cursor=pointer]:
+        - img [ref=e37]
+        - text: 매장 점주
+    - generic [ref=e41]:
+      - generic [ref=e42]:
+        - generic [ref=e43]: 이메일
+        - generic [ref=e44]:
+          - textbox "이메일을 입력하세요" [ref=e45]
+          - img [ref=e46]
+      - generic [ref=e49]:
+        - generic [ref=e50]: 비밀번호
+        - generic [ref=e51]:
+          - textbox "비밀번호" [ref=e52]
+          - img [ref=e53]
+      - generic [ref=e56]:
+        - generic [ref=e57] [cursor=pointer]:
+          - checkbox "로그인 상태 유지" [ref=e58]
+          - generic [ref=e59]: 로그인 상태 유지
+        - link "비밀번호를 잊으셨나요?" [ref=e60] [cursor=pointer]:
+          - /url: "#"
+      - button "로그인" [ref=e61] [cursor=pointer]:
+        - text: 로그인
+        - img [ref=e62]
+    - generic [ref=e64]: 계정이 없으신가요? 회원가입하기
+    - generic [ref=e66]: 또는
+    - button "로그인 없이 지도 둘러보기" [ref=e67] [cursor=pointer]
+    - generic [ref=e68]:
+      - text: 로그인함으로써 Toggle의
+      - link "이용약관" [ref=e69] [cursor=pointer]:
+        - /url: "#"
+      - text: 및
+      - link "개인정보 처리방침" [ref=e70] [cursor=pointer]:
+        - /url: "#"
+      - text: 에 동의하게 됩니다.

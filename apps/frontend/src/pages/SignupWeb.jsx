@@ -8,7 +8,8 @@ export default function SignupWeb() {
   const navigate = useNavigate();
   const [loginType, setLoginType] = useState('USER'); // 'USER' | 'OWNER'
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [ownerDisplayName, setOwnerDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,7 +30,8 @@ export default function SignupWeb() {
       await signup({
         email,
         password,
-        nickname: name,
+        nickname: loginType === 'USER' ? nickname : null,
+        ownerDisplayName: loginType === 'OWNER' ? ownerDisplayName : null,
         role: loginType,
       });
 
@@ -113,7 +115,15 @@ export default function SignupWeb() {
               <div className={styles.inputGroup}>
                 <input
                   type="text" placeholder={loginType === 'USER' ? "홍길동" : "토글가게 대치점"} className={styles.input}
-                  value={name} onChange={(e) => setName(e.target.value)} required
+                  value={loginType === 'USER' ? nickname : ownerDisplayName}
+                  onChange={(e) => {
+                    if (loginType === 'USER') {
+                      setNickname(e.target.value);
+                      return;
+                    }
+                    setOwnerDisplayName(e.target.value);
+                  }}
+                  required
                 />
                 <User className={styles.inputIcon} size={20} />
               </div>

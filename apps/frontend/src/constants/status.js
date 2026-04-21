@@ -5,6 +5,8 @@ export const STATUS_TYPES = {
     CLOSED: 'CLOSED',
     TEMP_CLOSED: 'TEMP_CLOSED',
     EARLY_CLOSED: 'EARLY_CLOSED',
+    LOOKUP_PENDING: 'LOOKUP_PENDING',
+    UNREGISTERED: 'UNREGISTERED',
   },
   CONGESTION: {
     RELAXED: 'RELAXED',
@@ -21,6 +23,8 @@ export const STATUS_UI = {
     [STATUS_TYPES.STORE.CLOSED]: { label: '영업종료', colorVar: 'var(--color-status-gray)' },
     [STATUS_TYPES.STORE.TEMP_CLOSED]: { label: '임시휴무', colorVar: 'var(--color-status-red)' },
     [STATUS_TYPES.STORE.EARLY_CLOSED]: { label: '조기마감', colorVar: 'var(--color-status-orange)' },
+    [STATUS_TYPES.STORE.LOOKUP_PENDING]: { label: '상태 확인 중', colorVar: 'var(--color-status-yellow)' },
+    [STATUS_TYPES.STORE.UNREGISTERED]: { label: '상태 정보 없음', colorVar: 'var(--color-status-gray)' },
   },
   CONGESTION: {
     [STATUS_TYPES.CONGESTION.RELAXED]: { label: '여유', colorVar: 'var(--color-status-green)' },
@@ -31,8 +35,8 @@ export const STATUS_UI = {
 };
 
 export const CATEGORIES = {
-  STORE: ['식당', '카페', '베이커리', '주점', '소매점', '병원', '기타'],
-  PUBLIC: ['도서관', '주민센터', '공공체육시설', '보건소', '기타']
+  STORE: ['음식점', '카페', '편의점', '대형마트', '약국', '병원', '기타'],
+  PUBLIC: ['공공기관', '문화시설', '학교', '지하철역', '주차장', '기타']
 };
 
 export function normalizeStoreStatus(status) {

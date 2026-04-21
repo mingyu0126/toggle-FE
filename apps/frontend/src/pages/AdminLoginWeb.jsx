@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, Lock, ChevronRight, Navigation, Mail } from 'lucide-react';
 import { login } from '../lib/auth';
-import { getCurrentUserRole, isLoggedIn, persistAuthSession } from '../lib/session';
+import { persistAuthSession } from '../lib/session';
+import { useAuthSession } from '../hooks/useAuthSession';
 import styles from './AdminLoginWeb.module.css';
 
 export default function AdminLoginWeb() {
   const navigate = useNavigate();
+  const auth = useAuthSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
@@ -16,10 +18,10 @@ export default function AdminLoginWeb() {
   useEffect(() => {
     document.title = 'Toggle Admin Login';
 
-    if (isLoggedIn() && getCurrentUserRole() === 'ADMIN') {
+    if (auth.isLoggedIn && auth.role === 'ADMIN') {
       navigate('/adminweb', { replace: true });
     }
-  }, [navigate]);
+  }, [auth.isLoggedIn, auth.role, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

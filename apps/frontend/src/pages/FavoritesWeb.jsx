@@ -4,11 +4,12 @@ import { Map, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import {
   Search, Crosshair, Store as StoreIcon, Heart, User, MapPin, List as ListIcon,
 } from 'lucide-react';
-import { mockPublicInstitutions } from '../mocks/public.mock';
 import PlaceCard from '../components/common/PlaceCard';
 import { fetchFavoriteStores } from '../lib/favorites';
-import { mapFavoriteStoreItemToPlace } from '../lib/storeMappers';
-import { clearAuthSession, getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
+import { fetchPublicInstitutionsByIds } from '../lib/publicInstitutions';
+import { mapStoreToPlace, mapPublicToPlace } from '../lib/mappers';
+import { addMyMapPublic, addMyMapStore } from '../lib/myMap';
+import { clearAuthSession, getCurrentUser, getLocalFavorites, isLoggedIn as getIsLoggedIn, syncLocalFavoritesSnapshot } from '../lib/session';
 import styles from './FavoritesWeb.module.css';
 
 export default function FavoritesWeb() {
@@ -16,16 +17,17 @@ export default function FavoritesWeb() {
   const [activeTab, setActiveTab] = useState('ALL');
   const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
   const [favoriteStores, setFavoriteStores] = useState([]);
-  const [favoritePublicIds, setFavoritePublicIds] = useState(() => getLocalFavorites().publics || []);
+  const [favoritePublics, setFavoritePublics] = useState([]);
   const [myLocation, setMyLocation] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(() => getIsLoggedIn());
   const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const loadFavoriteStores = async () => {
+  const loadFavorites = async () => {
     if (!getIsLoggedIn()) {
       setFavoriteStores([]);
+      setFavoritePublics([]);
       return;
     }
 
@@ -33,26 +35,48 @@ export default function FavoritesWeb() {
     setError('');
 
     try {
-      const items = await fetchFavoriteStores();
-      setFavoriteStores(items.map(mapFavoriteStoreItemToPlace));
-    } catch (loadError) {
-      setError(loadError.message || '저장한 매장을 불러오지 못했습니다.');
+      const [storeItems, latestFavorites] = await Promise.all([
+        fetchFavoriteStores().catch(err => {
+          console.error('Stores load failed:', err);
+          return [];
+        }),
+        Promise.resolve(getLocalFavorites())
+      ]);
+
+      syncLocalFavoritesSnapshot({
+        stores: storeItems.map((item) => item.storeId),
+        publics: latestFavorites.publics || [],
+      });
+
+      setFavoriteStores(storeItems.map(mapStoreToPlace));
+      
+      if (latestFavorites.publics?.length > 0) {
+        try {
+          const publicItems = await fetchPublicInstitutionsByIds(latestFavorites.publics);
+          setFavoritePublics(publicItems.map(mapPublicToPlace));
+        } catch (err) {
+          console.error('Publics load failed:', err);
+          setFavoritePublics([]);
+        }
+      } else {
+        setFavoritePublics([]);
+      }
+    } catch {
+      setError('장소를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadFavoriteStores();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadFavorites();
   }, []);
 
   useEffect(() => {
     const handleFavoritesChanged = () => {
       setIsLoggedIn(getIsLoggedIn());
       setCurrentUser(getCurrentUser());
-      setFavoritePublicIds(getLocalFavorites().publics || []);
-      loadFavoriteStores();
+      loadFavorites();
     };
 
     window.addEventListener('favoritesChanged', handleFavoritesChanged);
@@ -63,31 +87,29 @@ export default function FavoritesWeb() {
     const syncAuthState = () => {
       setIsLoggedIn(getIsLoggedIn());
       setCurrentUser(getCurrentUser());
-      setFavoritePublicIds(getLocalFavorites().publics || []);
-      loadFavoriteStores();
+      loadFavorites();
     };
 
     window.addEventListener('authChanged', syncAuthState);
     return () => window.removeEventListener('authChanged', syncAuthState);
   }, []);
 
-  const favStores = favoriteStores.map((store, index) => ({
+  const favStoresMapped = favoriteStores.map((store, index) => ({
     ...store,
     type: 'STORE',
     position: { lat: Number(store.lat) || 37.5065 + (index * 0.001), lng: Number(store.lng) || 127.0536 + (index * 0.001) },
     color: '#10b981',
   }));
 
-  const favPublics = mockPublicInstitutions
-    .filter((place) => favoritePublicIds.map(String).includes(String(place.id)))
+  const favPublicsMapped = favoritePublics
     .map((place, index) => ({
       ...place,
       type: 'CONGESTION',
-      position: { lat: 37.5050 - (index * 0.001), lng: 127.0520 + (index * 0.001) },
+      position: { lat: Number(place.lat) || 37.5050 - (index * 0.001), lng: Number(place.lng) || 127.0520 + (index * 0.001) },
       color: '#3b82f6',
     }));
 
-  const allItems = [...favStores, ...favPublics];
+  const allItems = [...favStoresMapped, ...favPublicsMapped];
   const filteredItems = allItems.filter((item) => {
     if (activeTab === 'STORE') return item.type === 'STORE';
     if (activeTab === 'PUBLIC') return item.type === 'CONGESTION';
@@ -110,6 +132,19 @@ export default function FavoritesWeb() {
   const focusPlace = (item) => {
     if (item.position) {
       setMapCenter(item.position);
+    }
+  };
+
+  const handleAddToMyMap = async (item) => {
+    try {
+      if (item.type === 'STORE') {
+        await addMyMapStore(item.internalStoreId);
+      } else {
+        await addMyMapPublic(item.internalId);
+      }
+      alert('내 지도에 추가되었습니다.');
+    } catch (addError) {
+      alert(addError.message || '내 지도에 추가하는 중 오류가 발생했습니다.');
     }
   };
 
@@ -157,7 +192,7 @@ export default function FavoritesWeb() {
           <div className={styles.sidebarHeader}>
             <div className={styles.sidebarTitleWrap}>
               <h1 className={styles.sidebarTitle}>저장한 장소</h1>
-              <p className={styles.sidebarSubtitle}>서버에 저장된 매장 즐겨찾기와 로컬 공공기관 저장 목록을 함께 보여줍니다.</p>
+              <p className={styles.sidebarSubtitle}>즐겨찾기는 서버 favorites만 보여주고, 내 지도 추가는 별도 컬렉션으로 저장합니다.</p>
             </div>
           </div>
 
@@ -168,7 +203,7 @@ export default function FavoritesWeb() {
           </div>
 
           <div className={styles.placeList}>
-            {!isLoggedIn && <div className={styles.emptyState}>로그인 후 저장한 장소를 확인할 수 있습니다.</div>}
+            {!isLoggedIn && <div className={styles.emptyState}>로그인 후 저장한 장소를 확인할 수  있습니다.</div>}
             {isLoggedIn && isLoading && <div className={styles.emptyState}>저장한 장소를 불러오는 중입니다.</div>}
             {isLoggedIn && !isLoading && error && <div className={styles.emptyState}>{error}</div>}
             {isLoggedIn && !isLoading && !error && filteredItems.length === 0 && (
@@ -178,8 +213,18 @@ export default function FavoritesWeb() {
             )}
 
             {isLoggedIn && !isLoading && !error && filteredItems.map((item) => (
-              <div key={`${item.type}-${item.internalStoreId || item.id}`} onClick={() => focusPlace(item)}>
+              <div key={`${item.type}-${item.internalStoreId || item.id}`} className={styles.cardActionBlock} onClick={() => focusPlace(item)}>
                 <PlaceCard place={item} type={item.type} isWeb />
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleAddToMyMap(item);
+                  }}
+                  className={styles.addToMyMapBtn}
+                >
+                  내 지도에 추가
+                </button>
               </div>
             ))}
           </div>

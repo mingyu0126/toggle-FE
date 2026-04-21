@@ -1,0 +1,249 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5] [cursor=pointer]:
+      - img [ref=e6]
+      - generic [ref=e10]: Toggle PC
+    - generic [ref=e12]:
+      - img [ref=e13]
+      - textbox "장소, 주소 검색" [ref=e16]
+    - navigation [ref=e17]:
+      - button "로그아웃" [ref=e18] [cursor=pointer]
+      - button [ref=e19] [cursor=pointer]:
+        - img [ref=e20]
+      - button "test@test.com" [ref=e22] [cursor=pointer]:
+        - img [ref=e23]
+  - generic [ref=e26]:
+    - complementary [ref=e27]:
+      - generic [ref=e29]:
+        - button "전체" [ref=e30] [cursor=pointer]
+        - button "식당" [ref=e31] [cursor=pointer]
+        - button "카페" [ref=e32] [cursor=pointer]
+        - button "베이커리" [ref=e33] [cursor=pointer]
+        - button "주점" [ref=e34] [cursor=pointer]
+        - button "소매점" [ref=e35] [cursor=pointer]
+        - button "병원" [ref=e36] [cursor=pointer]
+        - button "기타" [ref=e37] [cursor=pointer]
+        - button "도서관" [ref=e38] [cursor=pointer]
+        - button "주민센터" [ref=e39] [cursor=pointer]
+        - button "공공체육시설" [ref=e40] [cursor=pointer]
+        - button "보건소" [ref=e41] [cursor=pointer]
+        - button "기타" [ref=e42] [cursor=pointer]
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - heading "주변 추천 장소" [level=3] [ref=e45]
+          - generic [ref=e46]: 8개
+        - generic [ref=e47]:
+          - generic [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]:
+              - generic [ref=e50]:
+                - heading "맛있는 덮밥집" [level=3] [ref=e51]
+                - generic [ref=e52]: 식당
+              - button "즐겨찾기" [ref=e53]:
+                - img [ref=e54]
+            - generic [ref=e56]:
+              - generic [ref=e57]:
+                - generic [ref=e58]: 영업중
+                - generic [ref=e59]: 10분 전 업데이트
+              - generic [ref=e60]:
+                - img [ref=e61]
+                - generic [ref=e64]: 서울시 강남구 테헤란로 123
+              - generic [ref=e65]:
+                - img [ref=e66]
+                - generic [ref=e69]: 11:00 - 21:00
+                - generic [ref=e70]: (브레이크 15:00 - 17:00)
+            - generic [ref=e71]:
+              - generic [ref=e72]:
+                - img [ref=e73]
+                - generic [ref=e75]: "4.8"
+              - generic [ref=e76]:
+                - img [ref=e77]
+                - generic [ref=e79]: "128"
+          - generic [ref=e80] [cursor=pointer]:
+            - generic [ref=e81]:
+              - generic [ref=e82]:
+                - heading "커피 한잔의 여유" [level=3] [ref=e83]
+                - generic [ref=e84]: 카페
+              - button "즐겨찾기" [ref=e85]:
+                - img [ref=e86]
+            - generic [ref=e88]:
+              - generic [ref=e89]:
+                - generic [ref=e90]: 브레이크타임
+                - generic [ref=e91]: 30분 전 업데이트
+              - generic [ref=e92]:
+                - img [ref=e93]
+                - generic [ref=e96]: 서울시 서초구 서초대로 456
+              - generic [ref=e97]:
+                - img [ref=e98]
+                - generic [ref=e101]: 08:00 - 22:00
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - img [ref=e104]
+                - generic [ref=e106]: "4.5"
+              - generic [ref=e107]:
+                - img [ref=e108]
+                - generic [ref=e110]: "342"
+          - generic [ref=e111] [cursor=pointer]:
+            - generic [ref=e112]:
+              - generic [ref=e113]:
+                - heading "정통 수제버거" [level=3] [ref=e114]
+                - generic [ref=e115]: 식당
+              - button "즐겨찾기" [ref=e116]:
+                - img [ref=e117]
+            - generic [ref=e119]:
+              - generic [ref=e120]:
+                - generic [ref=e121]: 조기마감
+                - generic [ref=e122]: 1시간 전 업데이트
+              - generic [ref=e123]:
+                - img [ref=e124]
+                - generic [ref=e127]: 서울시 강남구 논현로 789
+              - generic [ref=e128]:
+                - img [ref=e129]
+                - generic [ref=e132]: 11:30 - 20:30
+            - generic [ref=e133]:
+              - generic [ref=e134]:
+                - img [ref=e135]
+                - generic [ref=e137]: "4.9"
+              - generic [ref=e138]:
+                - img [ref=e139]
+                - generic [ref=e141]: "856"
+          - generic [ref=e142] [cursor=pointer]:
+            - generic [ref=e143]:
+              - generic [ref=e144]:
+                - heading "신선한 빵집" [level=3] [ref=e145]
+                - generic [ref=e146]: 베이커리
+              - button "즐겨찾기" [ref=e147]:
+                - img [ref=e148]
+            - generic [ref=e150]:
+              - generic [ref=e151]:
+                - generic [ref=e152]: 영업중
+                - generic [ref=e153]: 방금 전 업데이트
+              - generic [ref=e154]:
+                - img [ref=e155]
+                - generic [ref=e158]: 서울시 서초구 강남대로 111
+              - generic [ref=e159]:
+                - img [ref=e160]
+                - generic [ref=e163]: 07:00 - 22:00
+            - generic [ref=e164]:
+              - generic [ref=e165]:
+                - img [ref=e166]
+                - generic [ref=e168]: "4.7"
+              - generic [ref=e169]:
+                - img [ref=e170]
+                - generic [ref=e172]: "512"
+          - generic [ref=e173] [cursor=pointer]:
+            - generic [ref=e174]:
+              - generic [ref=e175]:
+                - heading "동네 호프" [level=3] [ref=e176]
+                - generic [ref=e177]: 주점
+              - button "즐겨찾기" [ref=e178]:
+                - img [ref=e179]
+            - generic [ref=e181]:
+              - generic [ref=e182]:
+                - generic [ref=e183]: 영업종료
+                - generic [ref=e184]: 2시간 전 업데이트
+              - generic [ref=e185]:
+                - img [ref=e186]
+                - generic [ref=e189]: 서울시 강남구 역삼로 222
+              - generic [ref=e190]:
+                - img [ref=e191]
+                - generic [ref=e194]: 18:00 - 02:00
+            - generic [ref=e195]:
+              - generic [ref=e196]:
+                - img [ref=e197]
+                - generic [ref=e199]: "4.2"
+              - generic [ref=e200]:
+                - img [ref=e201]
+                - generic [ref=e203]: "89"
+          - generic [ref=e204] [cursor=pointer]:
+            - generic [ref=e205]:
+              - generic [ref=e206]:
+                - heading "강남구립도서관" [level=3] [ref=e207]
+                - generic [ref=e208]: 도서관
+              - button "즐겨찾기" [ref=e209]:
+                - img [ref=e210]
+            - generic [ref=e212]:
+              - generic [ref=e213]:
+                - generic [ref=e214]: 보통
+                - generic [ref=e215]: 5분 전 업데이트
+              - generic [ref=e216]:
+                - img [ref=e217]
+                - generic [ref=e220]: 서울시 강남구 삼성로 123
+              - generic [ref=e221]:
+                - img [ref=e222]
+                - generic [ref=e225]:
+                  - text: "예상 대기시간:"
+                  - strong [ref=e226]: 0분
+            - generic [ref=e228]:
+              - img [ref=e229]
+              - generic [ref=e231]: "1045"
+          - generic [ref=e232] [cursor=pointer]:
+            - generic [ref=e233]:
+              - generic [ref=e234]:
+                - heading "서초1동 주민센터" [level=3] [ref=e235]
+                - generic [ref=e236]: 주민센터
+              - button "즐겨찾기" [ref=e237]:
+                - img [ref=e238]
+            - generic [ref=e240]:
+              - generic [ref=e241]:
+                - generic [ref=e242]: 혼잡
+                - generic [ref=e243]: 방금 전 업데이트
+              - generic [ref=e244]:
+                - img [ref=e245]
+                - generic [ref=e248]: 서울시 서초구 서초대로 321
+              - generic [ref=e249]:
+                - img [ref=e250]
+                - generic [ref=e253]:
+                  - text: "예상 대기시간:"
+                  - strong [ref=e254]: 15분
+            - generic [ref=e256]:
+              - img [ref=e257]
+              - generic [ref=e259]: "231"
+          - generic [ref=e260] [cursor=pointer]:
+            - generic [ref=e261]:
+              - generic [ref=e262]:
+                - heading "역삼 체육문화센터" [level=3] [ref=e263]
+                - generic [ref=e264]: 공공체육시설
+              - button "즐겨찾기" [ref=e265]:
+                - img [ref=e266]
+            - generic [ref=e268]:
+              - generic [ref=e269]:
+                - generic [ref=e270]: 여유
+                - generic [ref=e271]: 10분 전 업데이트
+              - generic [ref=e272]:
+                - img [ref=e273]
+                - generic [ref=e276]: 서울시 강남구 역삼로 456
+              - generic [ref=e277]:
+                - img [ref=e278]
+                - generic [ref=e281]:
+                  - text: "예상 대기시간:"
+                  - strong [ref=e282]: 0분
+            - generic [ref=e284]:
+              - img [ref=e285]
+              - generic [ref=e287]: "856"
+    - generic [ref=e288]:
+      - main [ref=e289]:
+        - button [ref=e291] [cursor=pointer]:
+          - img [ref=e292]
+      - generic [ref=e294]:
+        - generic [ref=e295]:
+          - button "주변" [ref=e296] [cursor=pointer]:
+            - img [ref=e297]
+            - generic [ref=e300]: 주변
+          - button "리스트" [ref=e301] [cursor=pointer]:
+            - img [ref=e302]
+            - generic [ref=e303]: 리스트
+          - button "저장" [ref=e304] [cursor=pointer]:
+            - img [ref=e305]
+            - generic [ref=e307]: 저장
+          - button "마이" [ref=e308] [cursor=pointer]:
+            - img [ref=e309]
+            - generic [ref=e312]: 마이
+        - generic [ref=e313]:
+          - generic [ref=e314]: © 2026 Toggle PC. All rights reserved.
+          - generic [ref=e315]:
+            - link "이용약관" [ref=e316] [cursor=pointer]:
+              - /url: "#"
+            - link "개인정보처리방침" [ref=e317] [cursor=pointer]:
+              - /url: "#"
+            - link "고객센터" [ref=e318] [cursor=pointer]:
+              - /url: "#"

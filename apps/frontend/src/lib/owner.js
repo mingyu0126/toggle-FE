@@ -11,14 +11,20 @@ export async function createOwnerStoreApplication({
   businessLicenseFile,
 }) {
   const formData = new FormData();
-  formData.append('request', new Blob([JSON.stringify({
-    storeName,
-    businessNumber,
-    representativeName,
-    businessOpenDate,
-    businessAddress,
-    businessPhone,
-  })], { type: 'application/json' }));
+  formData.append(
+    'request',
+    new Blob(
+      [JSON.stringify({
+        storeName,
+        businessNumber,
+        representativeName,
+        businessOpenDate,
+        businessAddress,
+        businessPhone,
+      })],
+      { type: 'application/json' }
+    )
+  );
   formData.append('businessLicenseFile', businessLicenseFile);
 
   return apiRequest('/api/v1/owner/store-registration-requests', {
@@ -45,6 +51,14 @@ export async function fetchMyOwnerStores() {
 export async function updateOwnerStoreStatus(storeId, payload) {
   return apiRequest(`/api/v1/owner/stores/${storeId}/status`, {
     method: 'POST',
+    headers: getAuthHeaders(),
+    body: payload,
+  });
+}
+
+export async function updateOwnerStoreProfile(storeId, payload) {
+  return apiRequest(`/api/v1/owner/stores/${storeId}/profile`, {
+    method: 'PUT',
     headers: getAuthHeaders(),
     body: payload,
   });

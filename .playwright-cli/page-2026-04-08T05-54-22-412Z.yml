@@ -1,0 +1,81 @@
+- generic [ref=e454]:
+  - banner [ref=e455]:
+    - generic [ref=e456]:
+      - button [ref=e457] [cursor=pointer]:
+        - img [ref=e458]
+      - generic [ref=e460]: 나만의 지도
+    - generic [ref=e461]:
+      - button "공유" [ref=e462] [cursor=pointer]:
+        - img [ref=e463]
+        - text: 공유
+      - button "로그아웃" [ref=e469] [cursor=pointer]
+  - generic [ref=e470]:
+    - generic [ref=e471]:
+      - img [ref=e472]
+      - textbox "친구 아이디 검색 (ex. toggle_user_1)" [ref=e475]
+      - button "검색" [ref=e476] [cursor=pointer]
+    - generic [ref=e477]:
+      - generic [ref=e478]:
+        - generic [ref=e480] [cursor=pointer]:
+          - img [ref=e481]
+          - img [ref=e485]
+        - generic [ref=e488]:
+          - generic [ref=e489]:
+            - heading "토글러님의 지도" [level=2] [ref=e490]
+            - img [ref=e491] [cursor=pointer]
+          - generic [ref=e493]:
+            - paragraph [ref=e494]: 우리 동네 찐맛집과 핫플레이스를 모아둔 지도입니다. 📍
+            - img [ref=e495] [cursor=pointer]
+          - paragraph [ref=e497]: "ID: @toggle_user_1"
+      - generic [ref=e499]: 지도 공개 설정 (ID 검색 허용)
+    - generic [ref=e502]:
+      - button "매장 (1)" [ref=e503] [cursor=pointer]
+      - button "공공기관 (0)" [ref=e504] [cursor=pointer]
+    - generic [ref=e505]:
+      - button "전체" [ref=e506] [cursor=pointer]
+      - button "식당" [ref=e507] [cursor=pointer]
+      - button "카페" [ref=e508] [cursor=pointer]
+      - button "베이커리" [ref=e509] [cursor=pointer]
+      - button "주점" [ref=e510] [cursor=pointer]
+      - button "소매점" [ref=e511] [cursor=pointer]
+      - button "병원" [ref=e512] [cursor=pointer]
+      - button "기타" [ref=e513] [cursor=pointer]
+      - button "🔥 지금 영업중" [ref=e514] [cursor=pointer]
+    - generic [ref=e516]:
+      - generic [ref=e517] [cursor=pointer]:
+        - generic [ref=e519]:
+          - heading "맛있는 덮밥집" [level=3] [ref=e520]
+          - generic [ref=e521]: 식당
+        - generic [ref=e522]:
+          - generic [ref=e523]:
+            - generic [ref=e524]: 영업중
+            - generic [ref=e525]: 10분 전 업데이트
+          - generic [ref=e526]:
+            - img [ref=e527]
+            - generic [ref=e530]: 서울시 강남구 테헤란로 123
+          - generic [ref=e531]:
+            - img [ref=e532]
+            - generic [ref=e535]: 11:00 - 21:00
+            - generic [ref=e536]: (브레이크 15:00 - 17:00)
+        - generic [ref=e537]:
+          - generic [ref=e538]:
+            - img [ref=e539]
+            - generic [ref=e541]: "4.8"
+          - generic [ref=e542]:
+            - img [ref=e543]
+            - generic [ref=e545]: "128"
+      - button "삭제" [ref=e546] [cursor=pointer]
+    - button "🗺️ 지도 보기" [ref=e547] [cursor=pointer]
+  - navigation [ref=e549]:
+    - button "주변" [ref=e550] [cursor=pointer]:
+      - img [ref=e551]
+      - generic [ref=e554]: 주변
+    - button "리스트" [ref=e555] [cursor=pointer]:
+      - img [ref=e556]
+      - generic [ref=e557]: 리스트
+    - button "저장" [ref=e558] [cursor=pointer]:
+      - img [ref=e559]
+      - generic [ref=e561]: 저장
+    - button "마이" [ref=e562] [cursor=pointer]:
+      - img [ref=e563]
+      - generic [ref=e566]: 마이

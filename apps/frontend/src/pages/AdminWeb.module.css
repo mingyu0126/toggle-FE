@@ -119,6 +119,12 @@
   gap: 1.4rem;
 }
 
+.summaryStrip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
@@ -659,6 +665,7 @@
 }
 
 @media (max-width: 1180px) {
+  .summaryStrip,
   .hero,
   .workspace,
   .detailGrid,
@@ -702,6 +709,10 @@
   }
 
   .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryStrip {
     grid-template-columns: 1fr;
   }
 }

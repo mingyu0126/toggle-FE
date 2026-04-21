@@ -15,9 +15,13 @@ apps/backend/src/main/resources/*.yaml
 apps/frontend/.env
 apps/frontend/.env.local
 apps/frontend/.env.*.local
+/.env
+/.env.local
 
 # Local daily/tool state
 .gstack/
+.worktrees/
+worktrees/
 
 # Vendored gstack repo and local shortcuts
 .agents/skills/gstack

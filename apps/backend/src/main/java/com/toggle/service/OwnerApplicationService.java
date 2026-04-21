@@ -15,6 +15,7 @@ import com.toggle.dto.owner.OwnerApplicationReviewResponse;
 import com.toggle.dto.owner.OwnerApplicationSummaryResponse;
 import com.toggle.dto.owner.OwnerApplicationUpdateRequest;
 import com.toggle.dto.owner.OwnerLinkedStoreResponse;
+import com.toggle.dto.owner.OwnerStoreProfileUpdateRequest;
 import com.toggle.dto.owner.OwnerStoreLinkResponse;
 import com.toggle.dto.owner.OwnerStoreStatusResponse;
 import com.toggle.dto.owner.OwnerStoreStatusUpdateRequest;
@@ -46,12 +47,14 @@ import com.toggle.repository.BusinessVerificationHistoryRepository;
 import com.toggle.repository.MapVerificationHistoryRepository;
 import com.toggle.repository.OwnerApplicationRepository;
 import com.toggle.repository.OwnerStoreLinkRepository;
+import com.toggle.repository.StoreRepository;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,6 +76,7 @@ public class OwnerApplicationService {
     private final AdminReviewLogRepository adminReviewLogRepository;
     private final OwnerDocumentStorageService ownerDocumentStorageService;
     private final AddressNormalizer addressNormalizer;
+    private final StoreRepository storeRepository;
     private final StoreService storeService;
     private final KakaoPlaceClient kakaoPlaceClient;
     private final NationalTaxServiceClient nationalTaxServiceClient;
@@ -86,6 +90,7 @@ public class OwnerApplicationService {
         AdminReviewLogRepository adminReviewLogRepository,
         OwnerDocumentStorageService ownerDocumentStorageService,
         AddressNormalizer addressNormalizer,
+        StoreRepository storeRepository,
         StoreService storeService,
         KakaoPlaceClient kakaoPlaceClient,
         NationalTaxServiceClient nationalTaxServiceClient,
@@ -98,6 +103,7 @@ public class OwnerApplicationService {
         this.adminReviewLogRepository = adminReviewLogRepository;
         this.ownerDocumentStorageService = ownerDocumentStorageService;
         this.addressNormalizer = addressNormalizer;
+        this.storeRepository = storeRepository;
         this.storeService = storeService;
         this.kakaoPlaceClient = kakaoPlaceClient;
         this.nationalTaxServiceClient = nationalTaxServiceClient;
@@ -207,13 +213,7 @@ public class OwnerApplicationService {
     @Transactional(readOnly = true)
     public List<OwnerLinkedStoreResponse> listLinkedStores(Long ownerUserId) {
         return ownerStoreLinkRepository.findAllByOwnerUserId(ownerUserId).stream()
-            .map(link -> new OwnerLinkedStoreResponse(
-                link.getId(),
-                link.getStore().getId(),
-                link.getStore().getName(),
-                link.getStore().getAddress(),
-                link.getStore().getLiveBusinessStatus().name()
-            ))
+            .map(this::toOwnerLinkedStoreResponse)
             .toList();
     }
 
@@ -409,6 +409,31 @@ public class OwnerApplicationService {
         );
     }
 
+    @Transactional
+    public OwnerLinkedStoreResponse updateOwnerStoreProfile(User ownerUser, Long storeId, OwnerStoreProfileUpdateRequest request) {
+        assertOwner(ownerUser);
+        OwnerStoreLink link = ownerStoreLinkRepository.findByOwnerUserIdAndStoreId(ownerUser.getId(), storeId)
+            .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "STORE_ACCESS_DENIED", "해당 매장을 관리할 권한이 없습니다."));
+
+        validateTimeField(request.openTime(), "영업 시작 시간");
+        validateTimeField(request.closeTime(), "영업 종료 시간");
+        validateTimeField(request.breakStart(), "브레이크 시작 시간");
+        validateTimeField(request.breakEnd(), "브레이크 종료 시간");
+
+        Store store = link.getStore();
+        store.updateOwnerProfile(
+            blankToNull(request.ownerNotice()),
+            blankToNull(request.openTime()),
+            blankToNull(request.closeTime()),
+            blankToNull(request.breakStart()),
+            blankToNull(request.breakEnd()),
+            serializeImageUrls(request.imageUrls()),
+            null
+        );
+
+        return toOwnerLinkedStoreResponse(link);
+    }
+
     private OwnerApplication buildApplication(
         User ownerUser,
         OwnerApplicationRequest request,
@@ -588,6 +613,34 @@ public class OwnerApplicationService {
         }
 
         Candidate bestCandidate = narrowedCandidates.get(0);
+        Optional<Store> existingStore = storeRepository.findByExternalSourceAndExternalPlaceId(
+            ExternalSource.KAKAO,
+            bestCandidate.externalPlaceId()
+        );
+        if (existingStore.isPresent() && !isSameVerifiedStore(application, existingStore.get())) {
+            application.markMapVerificationFailed();
+            mapVerificationHistoryRepository.save(new MapVerificationHistory(
+                application,
+                bestCandidate.queryText(),
+                bestCandidate.queryType(),
+                VerificationRecordStatus.FAILED,
+                narrowedCandidates.size(),
+                bestCandidate.externalPlaceId(),
+                bestCandidate.storeName(),
+                bestCandidate.roadAddress(),
+                bestCandidate.jibunAddress(),
+                bestCandidate.phone(),
+                bestCandidate.categoryName(),
+                bestCandidate.latitude() == null ? null : bestCandidate.latitude().toPlainString(),
+                bestCandidate.longitude() == null ? null : bestCandidate.longitude().toPlainString(),
+                safeJson(narrowedCandidates),
+                existingStore.get(),
+                "KAKAO_PLACE_ALREADY_REGISTERED",
+                "이미 다른 점주가 등록한 매장입니다.",
+                LocalDateTime.now()
+            ));
+            return;
+        }
 
         ResolveStoreResponse resolvedStore = storeService.resolveStore(new ResolveStoreRequest(
             ExternalSource.KAKAO.name(),
@@ -775,6 +828,11 @@ public class OwnerApplicationService {
             .replaceAll("[^0-9a-z가-힣]", "");
     }
 
+    private boolean isSameVerifiedStore(OwnerApplication application, Store store) {
+        return application.getVerifiedStore() != null
+            && application.getVerifiedStore().getId().equals(store.getId());
+    }
+
     private void ensureNoActiveDuplicateApplication(Long ownerUserId, String businessNumber, String businessAddress, Long currentApplicationId) {
         String normalizedBusinessNumber = normalizeBusinessNumber(businessNumber);
         String normalizedAddress = addressNormalizer.normalize(businessAddress);
@@ -890,6 +948,22 @@ public class OwnerApplicationService {
         );
     }
 
+    private OwnerLinkedStoreResponse toOwnerLinkedStoreResponse(OwnerStoreLink link) {
+        return new OwnerLinkedStoreResponse(
+            link.getId(),
+            link.getStore().getId(),
+            link.getStore().getName(),
+            link.getStore().getAddress(),
+            link.getStore().getLiveBusinessStatus().name(),
+            link.getStore().getOwnerNotice(),
+            link.getStore().getOperatingOpenTime(),
+            link.getStore().getOperatingCloseTime(),
+            link.getStore().getBreakStartTime(),
+            link.getStore().getBreakEndTime(),
+            deserializeImageUrls(link.getStore().getOwnerImageUrlsJson())
+        );
+    }
+
     private String safeJson(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
@@ -907,6 +981,40 @@ public class OwnerApplicationService {
 
     private String blankToEmpty(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private void validateTimeField(String value, String label) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+
+        if (!value.matches("^\\d{2}:\\d{2}$")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_TIME_FORMAT", label + " 형식이 올바르지 않습니다.");
+        }
+    }
+
+    private String serializeImageUrls(List<String> imageUrls) {
+        List<String> sanitized = imageUrls == null ? List.of() : imageUrls.stream()
+            .filter(value -> value != null && !value.isBlank())
+            .map(String::trim)
+            .limit(10)
+            .toList();
+        return safeJson(sanitized);
+    }
+
+    private List<String> deserializeImageUrls(String rawJson) {
+        if (rawJson == null || rawJson.isBlank()) {
+            return List.of();
+        }
+
+        try {
+            return objectMapper.readValue(
+                rawJson,
+                objectMapper.getTypeFactory().constructCollectionType(List.class, String.class)
+            );
+        } catch (JsonProcessingException ex) {
+            return List.of();
+        }
     }
 
     private record Candidate(

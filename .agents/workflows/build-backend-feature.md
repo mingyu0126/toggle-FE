@@ -1,221 +1,40 @@
 ---
-description: End-to-end workflow for implementing backend features in Toggle with PRD, API design, and QA preparation.
+description: Backend feature entrypoint under Main Agent orchestration.
 ---
 
-# Build Backend Feature (Toggle)
+# Build Backend Feature
 
-## Purpose
-Use this workflow when implementing a new backend feature for Toggle.
+Use this as a scoped router under `main-agent-orchestration.md`, not a standalone process.
 
-This workflow ensures:
-- proper scoping (PRD)
-- correct API design
-- role-safe implementation
-- test coverage
+Required order:
 
----
+1. `main-agent-orchestration.md`
+2. `01-brainstorming.md`
+3. `02-planning.md`
+4. `03-tdd-execution.md`
+5. `04-code-review.md`
+6. `qa-release.md`
+7. `05-finish-branch.md`
 
-## Input
+Role expectations:
 
-- rough feature idea OR requirement
-- existing product context (Toggle)
-- optional: related docs in /docs
+- `Main Agent` still decides whether Planner, Designer, QA Reviewer, and DevOps are required
+- the default is not to skip Planner, QA Reviewer, or DevOps
+- if Designer is not needed, `Main Agent` must record the reason explicitly before implementation starts
 
----
+Required artifact flow:
 
-## 🚨 MANDATORY RULES
+- planner output: `handoff/pm/{feature}.md`
+- backend engineering output: `handoff/eng-review/{feature}-api.md`
+- designer output when required: `handoff/design-review/{feature}-design.md`
+- QA output: `handoff/qa/{feature}-qa.md`
+- release output when needed: `handoff/qa/{feature}-release.md` or `handoff/eng-review/{feature}-release.md`
+- orchestration decision trail: `daily-log/YYYY-MM-DD.md`
 
-- MUST follow backend-rules.md
-- MUST enforce role separation:
-  - Guest / Member / Owner / Admin
-- MUST use DTO (no entity exposure)
-- MUST validate permissions and state transitions
+Backend-specific expectations:
 
----
-
-## Execution Steps
-
-### 0. Understand Problem Context
-
-- What is the user trying to do?
-- What is currently broken or missing?
-- Why does this feature matter?
-
-Do NOT proceed if problem is unclear.
-
-### 1. Clarify Feature Scope
-
-- Identify user problem
-- Define target role
-- Reduce to MVP scope
-
-👉 If unclear, refine before proceeding
-
----
-
-### 2. Generate PRD
-
-Use:
-→ `write-prd`
-
-Output must include:
-- user scenarios
-- functional requirements
-- edge cases
-- role definition
-
-Save to:
-```
-handoff/pm/{feature-name}-prd.md
-```
-
----
-
-### 3. Design API Contract
-
-Use:
-→ `design-api-contract`
-
-Must define:
-- endpoints
-- request/response DTO
-- auth rules
-- error cases
-- state transition rules
-
-Save to:
-```
-handoff/eng-review/{feature-name}-api.md
-```
-
-### 3.5 Review ERD / Schema If Domain Changes
-
-If the feature adds or changes database structure:
-
-Use:
-→ `backend-erd-review`
-
-Must check:
-- requirement coverage
-- relationship integrity
-- enum consistency
-- index/constraint gaps
-
----
-
----
-
-### 4. Generate Test Scenarios
-
-Use:
-→ `generate-test-scenarios`
-
-Must include:
-- guest flow
-- member flow
-- owner flow (if relevant)
-- admin flow (if relevant)
-- negative cases
-- edge cases
-
-Save to:
-```
-handoff/qa/{feature-name}-test.md
-```
-
----
-
-### 5. Validate Domain Logic
-
-Check:
-
-- status transition rules
-- ownership constraints
-- permission boundaries
-- consistency across flows
-
-If needed:
-→ use `gstack-plan-eng-review`
-
----
-
-### 6. Implement Backend
-
-Follow:
-
-- backend-rules.md
-- API contract
-- PRD requirements
-
-Must ensure:
-
-- controller → service → repository separation
-- DTO usage
-- proper validation
-- correct error handling
-
-Implementation may include:
-- controller
-- service
-- repository
-- dto
-- entity update if required
-- validation
-- authorization logic
-- tests if requested
-
----
-
-### 7. Self Review
-
-Use:
-→ `gstack-review`
-
-Check:
-
-- role safety
-- missing validation
-- incorrect assumptions
-- edge case coverage
-
----
-
-### 8. Final Validation
-
-Ensure:
-
-- PRD ↔ API ↔ Implementation consistency
-- permission enforcement
-- status correctness
-- test coverage completeness
-- CI/CD implications reviewed if build or deploy flow changed
-
----
-
-## Output
-
-- PRD
-- API contract
-- test scenarios
-- backend implementation plan
-
----
-
-## Notes
-
-- Do NOT skip PRD step
-- Do NOT design API before defining scope
-- Do NOT implement without test scenarios
-- Always prefer smaller, shippable scope
-
-## Naming Convention
-
-- {feature-name} must be:
-  - lowercase
-  - kebab-case
-  - descriptive
-
-Examples:
-- store-status-update
-- favorite-store
-- personal-map-create
+- implementation happens in `apps/backend`
+- auth, DTO, and role boundaries remain explicit
+- backend execution may begin only after `Scope Gate` and any required `Design Gate` decision are explicitly passed
+- verification uses `cd apps/backend && ./gradlew test`
+- build verification uses `cd apps/backend && ./gradlew build` when release readiness matters

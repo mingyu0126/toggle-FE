@@ -1,0 +1,313 @@
+- generic [ref=e36]:
+  - banner [ref=e37]:
+    - generic [ref=e38]:
+      - img [ref=e40]
+      - generic [ref=e43]:
+        - heading "Toggle Admin Console" [level=1] [ref=e44]
+        - paragraph [ref=e45]: admin@toggle.com 계정으로 운영 중
+    - generic [ref=e46]:
+      - button "새로고침" [ref=e47] [cursor=pointer]:
+        - img [ref=e48]
+        - text: 새로고침
+      - button "로그아웃" [ref=e53] [cursor=pointer]:
+        - img [ref=e54]
+        - text: 로그아웃
+  - main [ref=e57]:
+    - generic [ref=e58]:
+      - generic [ref=e59]:
+        - generic [ref=e60]: Store Registration Review
+        - heading "전국 자동 사업자 검증과 실영업주소 기반 카카오 저장 여부를 한 화면에서 확인하는 운영 콘솔" [level=2] [ref=e61]
+        - paragraph [ref=e62]: 사업자 검증과 카카오맵 검증이 모두 완료된 신청만 승인할 수 있습니다. 전국 주소를 국세청으로 자동 검증하고, 카카오는 점주가 입력한 실영업주소로 조회합니다.
+      - generic [ref=e63]:
+        - article [ref=e64]:
+          - generic [ref=e65]:
+            - img [ref=e66]
+            - text: 접수됨
+          - strong [ref=e69]: "0"
+          - generic [ref=e70]: 새로 들어온 신청
+        - article [ref=e71]:
+          - generic [ref=e72]:
+            - img [ref=e73]
+            - text: 검토중
+          - strong [ref=e75]: "1"
+          - generic [ref=e76]: 검증 또는 관리자 검토가 진행 중인 신청
+        - article [ref=e77]:
+          - generic [ref=e78]:
+            - img [ref=e79]
+            - text: 승인 가능
+          - strong [ref=e82]: "0"
+          - generic [ref=e83]: 두 검증이 완료되어 승인 버튼을 누를 수 있는 신청
+        - article [ref=e84]:
+          - generic [ref=e85]:
+            - img [ref=e86]
+            - text: 승인 완료
+          - strong [ref=e90]: "0"
+          - generic [ref=e91]: 최종 승인까지 끝난 신청
+    - generic [ref=e92]:
+      - generic [ref=e93]:
+        - generic [ref=e94]:
+          - generic [ref=e95]:
+            - heading "신청 목록" [level=3] [ref=e96]
+            - paragraph [ref=e97]: 검증 상태와 승인 가능 여부를 기준으로 우선순위를 확인합니다.
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - img [ref=e100]
+              - textbox [ref=e103]:
+                - /placeholder: 상호명, 사업자번호, 대표자명 검색
+            - combobox [ref=e104]:
+              - option "전체" [selected]
+              - option "접수됨"
+              - option "검토중"
+              - option "승인됨"
+              - option "반려됨"
+              - option "자동 검증 재시도 필요"
+              - option "자동 검증 실패"
+              - option "수동 검증 실패"
+              - option "지도 검증 실패"
+        - button "운영 확인용 토글 샵 test-owner · test@test.com 사업자 검증 실패 홍길동 서울특별시 강남구 선릉로 551 2026. 04. 10. 오후 04:46" [ref=e366] [cursor=pointer]:
+          - generic [ref=e107]:
+            - generic [ref=e108]:
+              - strong [ref=e109]: 운영 확인용 토글 샵
+              - generic [ref=e110]: test-owner · test@test.com
+            - generic [ref=e111]: 사업자 검증 실패
+          - generic [ref=e112]:
+            - generic [ref=e113]:
+              - img [ref=e114]
+              - text: 홍길동
+            - generic [ref=e117]:
+              - img [ref=e118]
+              - text: 서울특별시 강남구 선릉로 551
+            - generic [ref=e122]:
+              - img [ref=e123]
+              - text: 2026. 04. 10. 오후 04:46
+      - generic [ref=e126]:
+        - generic [ref=e127]:
+          - generic [ref=e367]:
+            - generic [ref=e368]: Application Detail
+            - heading "운영 확인용 토글 샵" [level=3] [ref=e369]
+            - paragraph [ref=e370]: test-owner · test@test.com
+          - generic [ref=e371]: 사업자 검증 실패
+        - generic [ref=e372]:
+          - article [ref=e373]:
+            - heading "신청 정보" [level=4] [ref=e374]
+            - generic [ref=e375]:
+              - generic [ref=e376]:
+                - term [ref=e377]: 매장명
+                - definition [ref=e378]: 운영 확인용 토글 샵
+              - generic [ref=e379]:
+                - term [ref=e380]: 대표자명
+                - definition [ref=e381]: 홍길동
+              - generic [ref=e382]:
+                - term [ref=e383]: 사업자 번호
+                - definition [ref=e384]: "8888877777"
+              - generic [ref=e385]:
+                - term [ref=e386]: 개업일자
+                - definition [ref=e387]: 2021. 03. 15.
+              - generic [ref=e388]:
+                - term [ref=e389]: 사업자 주소
+                - definition [ref=e390]: 서울특별시 강남구 선릉로 551
+              - generic [ref=e391]:
+                - term [ref=e392]: 사업자 검증 방식
+                - definition [ref=e393]: 국세청 자동 검증 기본, 필요 시 관리자 수동 보정
+              - generic [ref=e394]:
+                - term [ref=e395]: 서류 파일
+                - definition [ref=e396]: pending-owner-application.pdf
+              - generic [ref=e397]:
+                - term [ref=e398]: 저장 경로
+                - definition [ref=e399]: /dev-seed/pending-owner-application.pdf
+          - article [ref=e400]:
+            - heading "검증 상태" [level=4] [ref=e401]
+            - generic [ref=e402]:
+              - generic [ref=e403]:
+                - term [ref=e404]: 요청 상태
+                - definition [ref=e405]: UNDER_REVIEW
+              - generic [ref=e406]:
+                - term [ref=e407]: 사업자 검증 상태
+                - definition [ref=e408]: AUTO_VERIFICATION_FAILED
+              - generic [ref=e409]:
+                - term [ref=e410]: 지도 검증 상태
+                - definition [ref=e411]: NOT_STARTED
+              - generic [ref=e412]:
+                - term [ref=e413]: 검증된 매장
+                - definition [ref=e414]: "-"
+              - generic [ref=e415]:
+                - term [ref=e416]: 검증된 storeId
+                - definition [ref=e417]: "-"
+              - generic [ref=e418]:
+                - term [ref=e419]: 최종 검토 시각
+                - definition [ref=e420]: "-"
+              - generic [ref=e421]:
+                - term [ref=e422]: 반려 사유
+                - definition [ref=e423]: "-"
+        - article [ref=e424]:
+          - generic [ref=e425]:
+            - generic [ref=e426]:
+              - heading "카카오 검증 후보" [level=4] [ref=e427]
+              - paragraph [ref=e428]: "자동 매핑 점검에 사용한 후보 목록입니다. `stores` 저장이 완료된 경우에만 승인할 수 있습니다."
+            - button "지도 재검증" [ref=e429] [cursor=pointer]:
+              - img [ref=e430]
+              - text: 지도 재검증
+          - generic [ref=e435]:
+            - generic [ref=e436]:
+              - generic [ref=e437]:
+                - strong [ref=e438]: 디캠프
+                - generic [ref=e439]: 서울 강남구 선릉로 551
+                - generic [ref=e440]: "placeId: 20226959"
+              - generic [ref=e441]:
+                - strong [ref=e442]: "70"
+                - generic [ref=e443]: address_exact
+            - generic [ref=e444]:
+              - generic [ref=e445]:
+                - strong [ref=e446]: 새롬빌딩
+                - generic [ref=e447]: 서울 강남구 선릉로 551
+                - generic [ref=e448]: "placeId: 25977397"
+              - generic [ref=e449]:
+                - strong [ref=e450]: "70"
+                - generic [ref=e451]: address_exact
+            - generic [ref=e452]:
+              - generic [ref=e453]:
+                - strong [ref=e454]: 히즈빈스 디캠프점
+                - generic [ref=e455]: 서울 강남구 선릉로 551
+                - generic [ref=e456]: "placeId: 1821714093"
+              - generic [ref=e457]:
+                - strong [ref=e458]: "70"
+                - generic [ref=e459]: address_exact
+            - generic [ref=e460]:
+              - generic [ref=e461]:
+                - strong [ref=e462]: CJ인베스트먼트
+                - generic [ref=e463]: 서울 강남구 선릉로 551
+                - generic [ref=e464]: "placeId: 1789206986"
+              - generic [ref=e465]:
+                - strong [ref=e466]: "70"
+                - generic [ref=e467]: address_exact
+            - generic [ref=e468]:
+              - generic [ref=e469]:
+                - strong [ref=e470]: 플룸디
+                - generic [ref=e471]: 서울 강남구 선릉로 551
+                - generic [ref=e472]: "placeId: 1111913594"
+              - generic [ref=e473]:
+                - strong [ref=e474]: "70"
+                - generic [ref=e475]: address_exact
+            - generic [ref=e476]:
+              - generic [ref=e477]:
+                - strong [ref=e478]: 은행권청년창업재단
+                - generic [ref=e479]: 서울 강남구 선릉로 551
+                - generic [ref=e480]: "placeId: 22893017"
+              - generic [ref=e481]:
+                - strong [ref=e482]: "70"
+                - generic [ref=e483]: address_exact
+            - generic [ref=e484]:
+              - generic [ref=e485]:
+                - strong [ref=e486]: 코워크위더스
+                - generic [ref=e487]: 서울 강남구 선릉로 551
+                - generic [ref=e488]: "placeId: 238945826"
+              - generic [ref=e489]:
+                - strong [ref=e490]: "70"
+                - generic [ref=e491]: address_exact
+            - generic [ref=e492]:
+              - generic [ref=e493]:
+                - strong [ref=e494]: 비유에스 크리에이티브
+                - generic [ref=e495]: 서울 강남구 선릉로 551
+                - generic [ref=e496]: "placeId: 139709566"
+              - generic [ref=e497]:
+                - strong [ref=e498]: "70"
+                - generic [ref=e499]: address_exact
+            - generic [ref=e500]:
+              - generic [ref=e501]:
+                - strong [ref=e502]: 위클리셔츠
+                - generic [ref=e503]: 서울 강남구 선릉로 551
+                - generic [ref=e504]: "placeId: 1858336200"
+              - generic [ref=e505]:
+                - strong [ref=e506]: "70"
+                - generic [ref=e507]: address_exact
+            - generic [ref=e508]:
+              - generic [ref=e509]:
+                - strong [ref=e510]: 클랩디자인스튜디오
+                - generic [ref=e511]: 서울 강남구 선릉로 551
+                - generic [ref=e512]: "placeId: 27597241"
+              - generic [ref=e513]:
+                - strong [ref=e514]: "70"
+                - generic [ref=e515]: address_exact
+            - generic [ref=e516]:
+              - generic [ref=e517]:
+                - strong [ref=e518]: 드랩
+                - generic [ref=e519]: 서울 강남구 선릉로 551
+                - generic [ref=e520]: "placeId: 374343301"
+              - generic [ref=e521]:
+                - strong [ref=e522]: "70"
+                - generic [ref=e523]: address_exact
+            - generic [ref=e524]:
+              - generic [ref=e525]:
+                - strong [ref=e526]: 벙글코리아
+                - generic [ref=e527]: 서울 강남구 선릉로 551
+                - generic [ref=e528]: "placeId: 2048262772"
+              - generic [ref=e529]:
+                - strong [ref=e530]: "70"
+                - generic [ref=e531]: address_exact
+            - generic [ref=e532]:
+              - generic [ref=e533]:
+                - strong [ref=e534]: 트랜스링크인베스트먼트
+                - generic [ref=e535]: 서울 강남구 선릉로 551
+                - generic [ref=e536]: "placeId: 956155927"
+              - generic [ref=e537]:
+                - strong [ref=e538]: "70"
+                - generic [ref=e539]: address_exact
+            - generic [ref=e540]:
+              - generic [ref=e541]:
+                - strong [ref=e542]: 플래텀
+                - generic [ref=e543]: 서울 강남구 선릉로 551
+                - generic [ref=e544]: "placeId: 19292121"
+              - generic [ref=e545]:
+                - strong [ref=e546]: "70"
+                - generic [ref=e547]: address_exact
+            - generic [ref=e548]:
+              - generic [ref=e549]:
+                - strong [ref=e550]: 파인드어스
+                - generic [ref=e551]: 서울 강남구 선릉로 551
+                - generic [ref=e552]: "placeId: 908629634"
+              - generic [ref=e553]:
+                - strong [ref=e554]: "70"
+                - generic [ref=e555]: address_exact
+        - generic [ref=e556]:
+          - article [ref=e557]:
+            - heading "사업자 검증 이력" [level=4] [ref=e558]
+            - generic [ref=e560]:
+              - strong [ref=e561]: AUTO_NTS
+              - generic [ref=e562]: FAILED
+              - generic [ref=e563]: 국세청 진위확인 결과가 일치하지 않습니다.
+          - article [ref=e564]:
+            - heading "지도 검증 이력" [level=4] [ref=e565]
+            - paragraph [ref=e566]: 아직 지도 검증 이력이 없습니다.
+        - article [ref=e567]:
+          - generic [ref=e569]:
+            - heading "운영 액션" [level=4] [ref=e570]
+            - paragraph [ref=e571]: 국세청 자동 검증과 카카오 검증 결과를 확인하고, 예외 상황만 수동 보정한 뒤 최종 승인 또는 반려를 처리합니다.
+          - generic [ref=e572]:
+            - generic [ref=e573]:
+              - heading "사업자 검증" [level=5] [ref=e574]
+              - button "국세청 자동 검증 재실행" [ref=e575] [cursor=pointer]:
+                - img [ref=e576]
+                - text: 국세청 자동 검증 재실행
+              - textbox "자동 검증 결과를 수동으로 보정할 때 사유를 입력하세요" [ref=e581]
+              - generic [ref=e582]:
+                - button "수동 검증 완료" [ref=e583] [cursor=pointer]:
+                  - img [ref=e584]
+                  - text: 수동 검증 완료
+                - button "수동 검증 실패" [ref=e587] [cursor=pointer]:
+                  - img [ref=e588]
+                  - text: 수동 검증 실패
+            - generic [ref=e592]:
+              - heading "최종 승인" [level=5] [ref=e593]
+              - generic [ref=e594]:
+                - checkbox "관리자 최종 확인 사업자 검증과 카카오맵 검증 결과를 확인했고, 이 신청을 최종 승인해도 된다고 판단했습니다." [ref=e595]
+                - generic [ref=e596]:
+                  - strong [ref=e597]: 관리자 최종 확인
+                  - text: 사업자 검증과 카카오맵 검증 결과를 확인했고, 이 신청을 최종 승인해도 된다고 판단했습니다.
+              - textbox "반려 시 사유를 입력하세요" [ref=e598]
+          - generic [ref=e599]:
+            - button "최종 승인" [disabled] [ref=e600]:
+              - img [ref=e601]
+              - text: 최종 승인
+            - button "반려 처리" [ref=e604] [cursor=pointer]:
+              - img [ref=e605]
+              - text: 반려 처리

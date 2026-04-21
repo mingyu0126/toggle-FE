@@ -1,0 +1,53 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - button [ref=e6] [cursor=pointer]:
+      - img [ref=e7]
+    - heading "저장한 장소" [level=1] [ref=e9]
+  - generic [ref=e11]:
+    - button "기본 전체 (1)" [ref=e12] [cursor=pointer]
+    - button "매장 (1)" [ref=e13] [cursor=pointer]
+    - button "공공기관 (0)" [ref=e14] [cursor=pointer]
+  - generic [ref=e16]:
+    - generic [ref=e17]:
+      - img [ref=e18]
+      - heading "저장한 매장" [level=2] [ref=e22]
+    - generic [ref=e24]:
+      - generic [ref=e25] [cursor=pointer]:
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - heading "맛있는 덮밥집" [level=3] [ref=e28]
+            - generic [ref=e29]: 식당
+          - button "즐겨찾기" [ref=e30]:
+            - img [ref=e31]
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - generic [ref=e35]: 영업중
+            - generic [ref=e36]: 10분 전 업데이트
+          - generic [ref=e37]:
+            - img [ref=e38]
+            - generic [ref=e41]: 서울시 강남구 테헤란로 123
+          - generic [ref=e42]:
+            - img [ref=e43]
+            - generic [ref=e46]: 11:00 - 21:00
+            - generic [ref=e47]: (브레이크 15:00 - 17:00)
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - img [ref=e50]
+            - generic [ref=e52]: "4.8"
+          - generic [ref=e53]:
+            - img [ref=e54]
+            - generic [ref=e56]: "128"
+      - button "내 지도에 추가" [ref=e57] [cursor=pointer]
+  - navigation [ref=e59]:
+    - button "주변" [ref=e60] [cursor=pointer]:
+      - img [ref=e61]
+      - generic [ref=e64]: 주변
+    - button "리스트" [ref=e65] [cursor=pointer]:
+      - img [ref=e66]
+      - generic [ref=e67]: 리스트
+    - button "저장" [ref=e68] [cursor=pointer]:
+      - img [ref=e69]
+      - generic [ref=e71]: 저장
+    - button "마이" [ref=e72] [cursor=pointer]:
+      - img [ref=e73]
+      - generic [ref=e76]: 마이

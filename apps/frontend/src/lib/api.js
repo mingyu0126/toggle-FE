@@ -4,16 +4,22 @@ export async function apiRequest(path, options = {}) {
   const { headers = {}, body, ...rest } = options;
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-      ...headers,
-    },
-    body: body
-      ? (isFormData ? body : JSON.stringify(body))
-      : undefined,
-    ...rest,
-  });
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      headers: {
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        ...headers,
+      },
+      body: body
+        ? (isFormData ? body : JSON.stringify(body))
+        : undefined,
+      ...rest,
+    });
+  } catch {
+    throw new Error('서버 연결에 실패했습니다. 백엔드 실행 상태와 CORS 설정을 확인해 주세요.');
+  }
 
   let payload = null;
 

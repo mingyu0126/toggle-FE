@@ -86,6 +86,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
 }
 
 .totalCount {
@@ -96,6 +97,31 @@
 
 .totalCount strong {
   color: var(--color-status-green); /* Use Green accent */
+}
+
+.filterActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.locationSearchBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(59, 130, 246, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  color: #dbeafe;
+  border-radius: var(--radius-md);
+  padding: 0.42rem 0.65rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.locationSearchBtn:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .sortSelect {

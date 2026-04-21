@@ -264,9 +264,17 @@
 
 .listHeader {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
   padding: 1.5rem 1.5rem 1rem 1.5rem;
+}
+
+.listTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
 }
 
 .listHeader h3 {
@@ -282,6 +290,29 @@
   background: rgba(96, 165, 250, 0.15);
   padding: 0.15rem 0.5rem;
   border-radius: var(--radius-full);
+}
+
+.openFilterBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.openFilterBtn.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.24));
+  border-color: rgba(96, 165, 250, 0.45);
+  color: white;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
 }
 
 .cardsWrapper {
@@ -350,6 +381,37 @@
 .myLocationBtn:hover {
   background: var(--color-bg-hover);
   transform: scale(1.05);
+}
+
+.mapSearchButtonWrap {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+}
+
+.mapSearchButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.7rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.95);
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.mapSearchButton:active {
+  transform: scale(0.97);
 }
 
 /* 데스크탑 전용 하단 플로팅 바 & 푸터 */
@@ -488,4 +550,85 @@
 @keyframes pulse {
   0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
   100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+}
+
+/* ========================================================
+   Responsive Media Queries
+   ======================================================== */
+
+/* Tablet & Smaller Desktop (max-width: 1024px) */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 340px;
+    min-width: 340px;
+  }
+  .headerSearch {
+    width: 250px;
+  }
+}
+
+/* Mobile & Small Tablet (max-width: 768px) */
+@media (max-width: 768px) {
+  .webHeader {
+    padding: 0 1rem;
+    height: 60px;
+  }
+  .logoText {
+    font-size: 1.25rem;
+  }
+  .headerSearch {
+    width: auto;
+    flex: 1;
+    margin: 0 1rem;
+  }
+  .navBtn {
+    display: none; /* Hide text buttons on mobile */
+  }
+  .webFooter {
+    display: none;
+  }
+  
+  /* Stack sidebar and map */
+  .webBody {
+    flex-direction: column; /* Changed to column to put sidebar on top or bottom */
+  }
+  
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    height: 50vh; /* Take up half screen */
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .contentArea {
+    flex: 1; /* Map takes remaining space */
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .myLocationBtn {
+    bottom: 1rem;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+  }
+  
+  .webBottomNav {
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+/* Extra Small Mobile (max-width: 480px) */
+@media (max-width: 480px) {
+  .headerInput {
+    display: none;
+  }
+  .headerSearch {
+    padding: 0.5rem;
+    justify-content: center;
+    background: transparent;
+    border-color: transparent;
+  }
 }

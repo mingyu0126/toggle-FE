@@ -1,0 +1,28 @@
+- generic [ref=e7]:
+  - generic [ref=e8]:
+    - heading "Toggle" [level=1] [ref=e9]
+    - paragraph [ref=e10]: 새로운 시작, 우리 동네 연결하기
+  - generic [ref=e11]:
+    - generic [ref=e13] [cursor=pointer]:
+      - img [ref=e14]
+      - text: 일반 사용자
+    - generic [ref=e17] [cursor=pointer]:
+      - img [ref=e18]
+      - text: 점주 (POS)
+  - generic [ref=e22]:
+    - generic [ref=e23]:
+      - textbox "닉네임" [ref=e24]
+      - img [ref=e25]
+    - generic [ref=e28]:
+      - textbox "이메일을 입력하세요" [ref=e29]
+      - img [ref=e30]
+    - generic [ref=e33]:
+      - textbox "비밀번호" [ref=e34]
+      - img [ref=e35]
+    - generic [ref=e38]:
+      - textbox "비밀번호 확인" [ref=e39]
+      - img [ref=e40]
+    - button "가입하기" [ref=e43] [cursor=pointer]:
+      - text: 가입하기
+      - img [ref=e44]
+  - button "이미 계정이 있으신가요? 로그인하기" [ref=e46] [cursor=pointer]
