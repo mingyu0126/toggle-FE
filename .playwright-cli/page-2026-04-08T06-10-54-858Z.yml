@@ -1,0 +1,28 @@
+- generic [ref=e47]:
+  - generic [ref=e48]:
+    - heading "Toggle" [level=1] [ref=e49]
+    - paragraph [ref=e50]: 점주 파트너가 되어보세요
+  - generic [ref=e51]:
+    - generic [ref=e53] [cursor=pointer]:
+      - img [ref=e54]
+      - text: 일반 사용자
+    - generic [ref=e57] [cursor=pointer]:
+      - img [ref=e58]
+      - text: 점주 (POS)
+  - generic [ref=e62]:
+    - generic [ref=e63]:
+      - textbox "닉네임 (또는 매장명)" [ref=e64]: owner-shop
+      - img [ref=e65]
+    - generic [ref=e68]:
+      - textbox "매장 관리자 이메일" [ref=e87]: owner@example.com
+      - img [ref=e70]
+    - generic [ref=e73]:
+      - textbox "비밀번호" [ref=e74]: password123!
+      - img [ref=e75]
+    - generic [ref=e78]:
+      - textbox "비밀번호 확인" [ref=e79]
+      - img [ref=e80]
+    - button "점주 가입 완료" [ref=e88] [cursor=pointer]:
+      - text: 점주 가입 완료
+      - img [ref=e84]
+  - button "이미 계정이 있으신가요? 로그인하기" [ref=e86] [cursor=pointer]

@@ -24,11 +24,11 @@
 - 조치: refresh token 유효성 검사를 통과해야만 성공 응답을 주도록 수정했다.
 - 상태: fixed
 
-### 3. JWT secret 기본값 하드코딩 리스크
-- 문제: 설정 누락 시 기본 비밀키로 구동될 수 있었다.
-- 영향: 운영 환경 보안성이 크게 떨어질 수 있었다.
-- 조치: `JWT_SECRET` 환경변수 기반으로 바꾸고 길이/빈값 검증을 추가했다.
-- 상태: fixed
+### 3. JWT secret 설정 정책 이력
+- 문제: 과거에는 JWT secret 기본값 하드코딩 리스크를 줄이기 위해 환경변수 기반 설정으로 전환했었다.
+- 영향: 당시에는 설정 누락 시 기본 비밀키 구동 위험을 줄이는 데 도움이 됐다.
+- 조치: 이후 프로젝트 운영 정책이 변경되어, 현재는 백엔드 `application.yml`에 직접 고정값을 두고 환경변수 참조를 사용하지 않는다.
+- 상태: superseded by current backend config policy
 
 ### 4. 이메일 정규화 누락으로 중복 계정 생성 가능성
 - 문제: 공백, 대소문자가 섞인 이메일 입력이 그대로 처리됐다.
@@ -117,7 +117,7 @@
 - 상태: fixed
 
 ### Browser Verification
-- backend: `JWT_SECRET='local-dev-jwt-secret-key-12345678901234567890' ./gradlew bootRun`
+- backend: `./gradlew bootRun`
 - frontend: `npm run dev -- --host 127.0.0.1 --port 4173`
 - Playwright:
   - `USER` 회원가입/로그인 성공
@@ -144,4 +144,4 @@
 - 일반 회원가입과 점주 가입 신청을 분리했다.
 - 점주 신청은 `multipart/form-data`로 사업자 등록증 파일을 함께 받는다.
 - `OWNER` 사용자는 관리자 승인 전 `PENDING_APPROVAL` 상태이며 로그인할 수 없다.
-- 관리자 승인 API는 구현됐지만 관리자 웹 화면은 아직 mock 기반이라 후속 연결이 필요하다.
+- 관리자 승인 API와 관리자 웹 화면 연결은 이후 후속 작업으로 완료됐다.

@@ -1,0 +1,77 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - button [ref=e7] [cursor=pointer]:
+        - img [ref=e8]
+      - generic [ref=e10]: 나만의 지도
+    - button "로그아웃" [ref=e12] [cursor=pointer]
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - img [ref=e15]
+      - textbox "친구 아이디 검색 (ex. toggle_user_1)" [ref=e18]
+      - button "검색" [ref=e19] [cursor=pointer]
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e23] [cursor=pointer]:
+          - img [ref=e24]
+          - img [ref=e28]
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - heading "qauser님의 지도" [level=2] [ref=e33]
+            - img [ref=e34] [cursor=pointer]
+          - generic [ref=e36]:
+            - paragraph [ref=e37]: 우리 동네 찐맛집과 핫플레이스를 모아둔 지도입니다. 📍
+            - img [ref=e38] [cursor=pointer]
+          - paragraph [ref=e40]: "ID: @qauser@example.com"
+      - generic [ref=e42]: 지도 공개 설정 (ID 검색 허용)
+    - generic [ref=e45]:
+      - button "매장 (1)" [ref=e46] [cursor=pointer]
+      - button "공공기관 (0)" [ref=e47] [cursor=pointer]
+    - generic [ref=e48]:
+      - button "전체" [ref=e49] [cursor=pointer]
+      - button "식당" [ref=e50] [cursor=pointer]
+      - button "카페" [ref=e51] [cursor=pointer]
+      - button "베이커리" [ref=e52] [cursor=pointer]
+      - button "주점" [ref=e53] [cursor=pointer]
+      - button "소매점" [ref=e54] [cursor=pointer]
+      - button "병원" [ref=e55] [cursor=pointer]
+      - button "기타" [ref=e56] [cursor=pointer]
+      - button "🔥 지금 영업중" [ref=e57] [cursor=pointer]
+    - generic [ref=e59]:
+      - generic [ref=e60] [cursor=pointer]:
+        - generic [ref=e62]:
+          - heading "맛있는 덮밥집" [level=3] [ref=e63]
+          - generic [ref=e64]: 식당
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - generic [ref=e67]: 영업중
+            - generic [ref=e68]: 10분 전 업데이트
+          - generic [ref=e69]:
+            - img [ref=e70]
+            - generic [ref=e73]: 서울시 강남구 테헤란로 123
+          - generic [ref=e74]:
+            - img [ref=e75]
+            - generic [ref=e78]: 11:00 - 21:00
+            - generic [ref=e79]: (브레이크 15:00 - 17:00)
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - img [ref=e82]
+            - generic [ref=e84]: "4.8"
+          - generic [ref=e85]:
+            - img [ref=e86]
+            - generic [ref=e88]: "128"
+      - button "삭제" [ref=e89] [cursor=pointer]
+    - button "🗺️ 지도 보기" [ref=e90] [cursor=pointer]
+  - navigation [ref=e92]:
+    - button "주변" [ref=e93] [cursor=pointer]:
+      - img [ref=e94]
+      - generic [ref=e97]: 주변
+    - button "리스트" [ref=e98] [cursor=pointer]:
+      - img [ref=e99]
+      - generic [ref=e100]: 리스트
+    - button "저장" [ref=e101] [cursor=pointer]:
+      - img [ref=e102]
+      - generic [ref=e104]: 저장
+    - button "마이" [ref=e105] [cursor=pointer]:
+      - img [ref=e106]
+      - generic [ref=e109]: 마이

@@ -1,26 +1,61 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Map, MapMarker, CustomOverlayMap } from 'react-kakao-maps-sdk';
 import { 
   Search, Menu, Crosshair, ListFilter, 
   Store as StoreIcon, Heart, User, MapPin, List as ListIcon 
 } from 'lucide-react';
-import { mockStores } from '../mocks/stores.mock';
-import { mockPublicInstitutions } from '../mocks/public.mock';
-import { CATEGORIES } from '../constants/status';
+import { CATEGORIES, STATUS_TYPES, normalizeStoreStatus } from '../constants/status';
 import PlaceCard from '../components/common/PlaceCard';
+import { useStoreLookupByExternalPlaceId } from '../hooks/useStoreLookupByExternalPlaceId';
+import { useKakaoPlacesWithLookup } from '../hooks/useKakaoPlacesWithLookup';
+import { createMergedPreviewPlace } from '../lib/mappers';
+import { getFavoritePlaceId, getLocalFavorites } from '../lib/session';
 import styles from './MainMap.module.css';
+
+const DEFAULT_CENTER = { lat: 37.5065, lng: 127.0536 };
+const LAST_LIST_SEARCH_CENTER_KEY = 'toggle:last-list-search-center';
+
+function readStoredSearchCenter() {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = window.localStorage.getItem(LAST_LIST_SEARCH_CENTER_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.lat !== 'number' || typeof parsed?.lng !== 'number') {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function persistSearchCenter(center) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(LAST_LIST_SEARCH_CENTER_KEY, JSON.stringify(center));
+}
+
+function hasStoredSearchCenter() {
+  return Boolean(readStoredSearchCenter());
+}
 
 export default function Home() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [activeCategory, setActiveCategory] = useState('전체');
+  const [onlyOpen, setOnlyOpen] = useState(false);
+  const [favorites, setFavorites] = useState(() => getLocalFavorites());
   
   // Map control states
-  const [mapCenter, setMapCenter] = useState({ lat: 37.5065, lng: 127.0536 });
+  const [mapCenter, setMapCenter] = useState(() => readStoredSearchCenter() || DEFAULT_CENTER);
+  const [searchCenter, setSearchCenter] = useState(() => readStoredSearchCenter() || DEFAULT_CENTER); // 별도 관리되는 탐색 기준 위치
+  const [isMapDragged, setIsMapDragged] = useState(false); // 현 지도에서 검색 노출용
   const [keyword, setKeyword] = useState('');
+  const [committedQuery, setCommittedQuery] = useState('');
   const [searchMarkers, setSearchMarkers] = useState([]);
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null); // 사용자가 선택한/검색한 장소
   const [myLocation, setMyLocation] = useState(null); // 내 위치 좌표
   
@@ -33,9 +68,24 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartY, setDragStartY] = useState(null);
   const [startHeight, setStartHeight] = useState(null);
+  const selectedExternalPlaceId = selectedPlace?.originalData?.id;
+  const { storeMatch: selectedPlaceStoreMatch, isLoading: isSelectedPlaceLookupLoading } =
+    useStoreLookupByExternalPlaceId(selectedExternalPlaceId);
+
+  useEffect(() => {
+    const handleFavoritesChanged = () => {
+      setFavorites(getLocalFavorites());
+    };
+
+    window.addEventListener('favoritesChanged', handleFavoritesChanged);
+    window.addEventListener('authChanged', handleFavoritesChanged);
+    return () => {
+      window.removeEventListener('favoritesChanged', handleFavoritesChanged);
+      window.removeEventListener('authChanged', handleFavoritesChanged);
+    };
+  }, []);
 
   const handleDragStart = (e) => {
-    // ... 기존 드래그 핸들 (생략하지 않고 복구)
     const y = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
     setDragStartY(y);
     setStartHeight(sheetHeight);
@@ -79,14 +129,14 @@ export default function Home() {
       window.removeEventListener('touchmove', handleDragMove);
       window.removeEventListener('touchend', handleDragEnd);
     };
-  }, [isDragging, handleDragMove]);
+  }, [isDragging]);
 
-  // 마운트 시 내 위치 자동 동기화 (조건부)
+  // 마운트 시 내 위치 자동 동기화
   useEffect(() => {
-    if (location.state?.autoGps) {
-      handleMyLocation();
+    if (!hasStoredSearchCenter()) {
+      handleMyLocation({ syncSearchCenter: true, persist: true });
     }
-  }, [location.state]);
+  }, []);
 
   // 실시간 연관 검색어 (디바운스 처리)
   useEffect(() => {
@@ -101,7 +151,7 @@ export default function Home() {
         const ps = new window.kakao.maps.services.Places();
         
         // 내 위치가 있으면 내 위치, 없으면 지도 중심
-        const center = myLocation || mapCenter;
+        const center = myLocation || searchCenter || mapCenter;
         const searchOptions = {
           size: 5,
           location: new window.kakao.maps.LatLng(center.lat, center.lng),
@@ -124,12 +174,13 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword]); // myLocation, mapCenter는 의도적으로 제외 (지도 이동 시 매번 재검색 방지)
 
-  // 장소 선택 헨들러 (엔터 및 연관검색어 클릭 공유)
+  // 장소 선택 핸들러 (엔터 및 연관검색어 클릭 공유)
   const handleSelectPlace = (placeData) => {
     const lat = Number(placeData.y);
     const lng = Number(placeData.x);
     const pos = { lat, lng };
     setMapCenter(pos);
+    setCommittedQuery(placeData.place_name);
     setSelectedPlace({
       position: pos,
       title: placeData.place_name,
@@ -144,45 +195,36 @@ export default function Home() {
   // 카카오 장소 검색 API 호출 (엔터)
   const handleSearch = (e) => {
     if (e.key === 'Enter' && keyword.trim()) {
-      if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
-        alert('카카오 지도 설정이 로드되지 않았습니다.');
-        return;
+      const baseCenter = myLocation || searchCenter;
+      if (baseCenter) {
+        setMapCenter(baseCenter);
+        setSearchCenter(baseCenter);
+        persistSearchCenter(baseCenter);
       }
-      const ps = new window.kakao.maps.services.Places();
-      ps.keywordSearch(keyword, (data, status) => {
-        if (status === window.kakao.maps.services.Status.OK && data.length > 0) {
-          // 검색된 첫 번째 장소로 지도 이동
-          const bounds = new window.kakao.maps.LatLngBounds();
-          let markers = [];
-          
-          for (var i = 0; i < data.length; i++) {
-            markers.push({
-              position: { lat: Number(data[i].y), lng: Number(data[i].x) },
-              title: data[i].place_name,
-              id: data[i].id
-            });
-            bounds.extend(new window.kakao.maps.LatLng(data[i].y, data[i].x));
-          }
-          
-          setSearchMarkers(markers);
-          handleSelectPlace(data[0]);
-        } else {
-          alert('검색 결과가 존재하지 않습니다.');
-        }
-      });
+      setCommittedQuery(keyword.trim());
+      setSelectedPlace(null);
+      setSearchMarkers([]);
+      setIsDropdownOpen(false);
     }
   };
 
   // HTML5 현위치 기능
-  const handleMyLocation = () => {
+  const handleMyLocation = ({ syncSearchCenter = false, persist = false } = {}) => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
           setMapCenter(loc);
+          if (syncSearchCenter) {
+            setSearchCenter(loc);
+          }
+          if (persist) {
+            persistSearchCenter(loc);
+          }
+          setIsMapDragged(false);
           setMyLocation(loc); // 내 위치 마커 표시용
         },
-        (error) => {
+        () => {
           alert('현위치를 가져올 수 없습니다. 권한을 확인해주세요.');
         }
       );
@@ -192,70 +234,119 @@ export default function Home() {
   };
 
   // Preview data for bottom sheet (필터링 적용)
-  const allPlaces = [
-    ...mockStores.map(s => ({ ...s, objType: 'STORE' })),
-    ...mockPublicInstitutions.map(p => ({ ...p, objType: 'CONGESTION' }))
-  ];
-
-  let rawPreviewItems = allPlaces.filter(place => activeCategory === '전체' || place.category === activeCategory);
+  const { places: nearbyPlaces } = useKakaoPlacesWithLookup(searchCenter, committedQuery, activeCategory, { radius: 2000, size: 5 });
+  
+  let rawPreviewItems = nearbyPlaces;
 
   // 선택된 카카오 검색 장소가 있다면 최상단에 주입
   if (selectedPlace && selectedPlace.originalData) {
     const kakaoData = selectedPlace.originalData;
-    // 우리 DB에 이미 있는지 확인 (이름으로 단순 매칭)
-    const existingIndex = rawPreviewItems.findIndex(p => p.name === kakaoData.place_name);
-    
-    if (existingIndex !== -1) {
-      // DB에 있으면 해당 장소를 맨 위로 끌어올림
-      const p = rawPreviewItems[existingIndex];
-      rawPreviewItems = [p, ...rawPreviewItems.filter(item => item.id !== p.id)];
-    } else {
-      // 카카오 검색 결과만 있다면 플레이스 카드 형식에 맞춰 최상단에 주입
-      const mappedPlace = {
-        id: kakaoData.id || `kakao-${kakaoData.y}-${kakaoData.x}`,
-        name: kakaoData.place_name,
-        category: kakaoData.category_group_name || kakaoData.category_name?.split(' > ').pop() || '기타',
-        status: '검색결과',
-        lastStatusUpdate: '방금',
-        address: kakaoData.road_address_name || kakaoData.address_name,
-        businessHours: kakaoData.phone || '전화번호 미제공',
-        favorites: 0,
-        rating: null,
-        hasBreakTime: false,
-        objType: 'STORE' // 기본값으로 STORE 지정
-      };
-      rawPreviewItems = [mappedPlace, ...rawPreviewItems];
-    }
+    const mappedPlace = createMergedPreviewPlace(
+      kakaoData,
+      selectedPlaceStoreMatch,
+      null,
+      isSelectedPlaceLookupLoading
+    );
+    rawPreviewItems = [mappedPlace, ...rawPreviewItems.filter(item => item.id !== mappedPlace.id)];
   }
 
-  const previewItems = rawPreviewItems.slice(0, 5); // 5개 노출
+  const filteredPreviewItems = rawPreviewItems.filter((item) => {
+    if (!onlyOpen) {
+      return true;
+    }
+
+    return item.objType === 'STORE' && normalizeStoreStatus(item.status) === STATUS_TYPES.STORE.OPEN;
+  });
+
+  const previewItems = filteredPreviewItems.slice(0, 5).map(item => ({
+    ...item,
+    isFavorited: item.objType === 'PUBLIC' 
+      ? favorites.publics.includes(getFavoritePlaceId('PUBLIC', item))
+      : favorites.stores.includes(getFavoritePlaceId('STORE', item))
+  }));
 
   return (
     <div className={styles.mapContainer}>
       {/* 맵 배경 (카카오 지도 렌더링) */}
-      <div className={styles.mapBackground}>
+      <div className={styles.mapBackground} style={{ position: 'relative' }}>
         <Map
           center={mapCenter} // 상태로 관리되는 중심 좌표
           style={{ width: '100%', height: '100%' }}
           level={4} // 확대 레벨
+          onDragEnd={(map) => {
+            const latlng = map.getCenter();
+            setMapCenter({
+              lat: latlng.getLat(),
+              lng: latlng.getLng(),
+            });
+            setIsMapDragged(true);
+          }}
         >
-          {/* 바텀시트에 표시될 추천 장소들 임시 마커 */}
-          {previewItems.map((item, idx) => {
-            const tempLat = 37.5065 + (idx * 0.002) - 0.001; 
-            const tempLng = 127.0536 + (idx * 0.002) - 0.001;
+          {/* 바텀시트에 표시될 추천 장소들 실제 마커 */}
+          {previewItems.map((item) => {
+            if (!item.lat || !item.lng) return null;
+            
+            const isToggleRegistered = item.status !== 'UNREGISTERED';
+            
+            if (isToggleRegistered) {
+              return (
+                <CustomOverlayMap 
+                  key={`preview-${item.id}`} 
+                  position={{ lat: item.lat, lng: item.lng }} 
+                  yAnchor={1} 
+                  zIndex={10}
+                >
+                  <div 
+                    onClick={() => {
+                      setSelectedPlace({
+                        id: item.id,
+                        position: { lat: item.lat, lng: item.lng },
+                        title: item.name,
+                        status: item.status === 'OPEN' || item.status === '영업중' ? '영업중' : item.status,
+                        color: item.objType === 'PUBLIC' ? '#3b82f6' : '#10b981',
+                        originalData: item.originalData
+                      });
+                      setMapCenter({ lat: item.lat, lng: item.lng });
+                    }}
+                    style={{
+                      cursor: 'pointer',
+                      background: item.isFavorited 
+                        ? 'linear-gradient(135deg, #ef4444, #f43f5e)' 
+                        : (item.objType === 'PUBLIC' ? 'linear-gradient(135deg, #3b82f6, #6366f1)' : 'linear-gradient(135deg, #10b981, #059669)'),
+                      padding: '4px 10px',
+                      borderRadius: '16px',
+                      color: 'white',
+                      fontWeight: '800',
+                      fontSize: '0.75rem',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                      border: '2px solid white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transform: 'translateY(12px)', // offset since anchor is 1
+                    }}
+                  >
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />
+                    {item.name.substring(0, 5)}{item.name.length > 5 ? '..' : ''}
+                  </div>
+                </CustomOverlayMap>
+              );
+            }
             return (
               <MapMarker 
                 key={`preview-${item.id}`} 
-                position={{ lat: tempLat, lng: tempLng }} 
+                position={{ lat: item.lat, lng: item.lng }} 
                 title={item.name} 
                 onClick={() => {
                   setSelectedPlace({
-                    position: { lat: tempLat, lng: tempLng },
+                    id: item.id,
+                    position: { lat: item.lat, lng: item.lng },
                     title: item.name,
-                    status: '영업중',
-                    color: '#10b981'
+                    status: item.status === 'OPEN' || item.status === '영업중' ? '영업중' : item.status,
+                    color: '#10b981',
+                    originalData: item.originalData
                   });
-                  setMapCenter({ lat: tempLat, lng: tempLng });
+                  setMapCenter({ lat: item.lat, lng: item.lng });
                 }}
               />
             );
@@ -323,7 +414,15 @@ export default function Home() {
                   placeholder="장소, 버스, 지하철, 주소 검색" 
                   className={styles.searchInput} 
                   value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
+                  onChange={(e) => {
+                    const nextValue = e.target.value;
+                    setKeyword(nextValue);
+                    if (!nextValue.trim()) {
+                      setCommittedQuery('');
+                      setSelectedPlace(null);
+                      setSearchMarkers([]);
+                    }
+                  }}
                   onKeyDown={handleSearch}
                   onFocus={() => { if(suggestions.length > 0) setIsDropdownOpen(true); }}
                   onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
@@ -374,9 +473,26 @@ export default function Home() {
           </div>
         </div>
 
+        {isMapDragged && (
+          <div className={styles.mapSearchButtonWrap}>
+            <button
+              type="button"
+              className={styles.mapSearchButton}
+              onClick={() => {
+                setSearchCenter(mapCenter);
+                persistSearchCenter(mapCenter);
+                setIsMapDragged(false);
+              }}
+            >
+              <Search size={16} />
+              현 지도에서 검색
+            </button>
+          </div>
+        )}
+
         {/* 우측 맵 컨트롤 */}
         <div className={styles.mapControls}>
-          <button className={styles.controlBtn} onClick={handleMyLocation}>
+          <button className={styles.controlBtn} onClick={() => handleMyLocation()}>
             <Crosshair size={20} />
           </button>
         </div>
@@ -398,9 +514,18 @@ export default function Home() {
           </div>
           
           <div className={styles.sheetHeader}>
-            <h2 className={styles.sheetTitle}>주변 추천 장소</h2>
-            <button 
-              style={{ color: 'var(--color-primary)', background: 'none', border: 'none', fontWeight: 600, fontSize: '0.85rem' }}
+            <div className={styles.sheetTitleGroup}>
+              <h2 className={styles.sheetTitle}>{committedQuery ? `"${committedQuery}" 검색 결과` : '주변 추천 장소'}</h2>
+              <button
+                type="button"
+                className={`${styles.openFilterBtn} ${onlyOpen ? styles.active : ''}`}
+                onClick={() => setOnlyOpen((current) => !current)}
+              >
+                영업중만
+              </button>
+            </div>
+            <button
+              className={styles.sheetLinkBtn}
               onClick={() => navigate('/list')}
             >
               전체보기
@@ -412,7 +537,11 @@ export default function Home() {
               <PlaceCard 
                 key={item.id} 
                 place={item} 
-                type={item.status === 'RELAXED' || item.status === 'NORMAL' || item.status === 'BUSY' || item.status === 'VERY_BUSY' ? 'CONGESTION' : 'STORE'} 
+                type={item.objType === 'PUBLIC' ? 'CONGESTION' : 'STORE'} 
+                onClick={() => {
+                  const detailPath = item.objType === 'PUBLIC' ? `/public/${item.id}` : `/store/${item.id}`;
+                  navigate(detailPath, { state: { placePreview: item } });
+                }}
               />
             ))}
           </div>

@@ -1,28 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, MapPin, Phone, Clock, AlertCircle, Heart, Navigation, Share2, Map as MapIcon, Image as ImageIcon } from 'lucide-react';
 import { Map, MapMarker } from 'react-kakao-maps-sdk';
-import { mockStores } from '../mocks/stores.mock';
 import StatusBadge from '../components/common/StatusBadge';
 import LoginModal from '../components/common/LoginModal'; // 추가
 import ImageCarousel from '../components/common/ImageCarousel';
 import { addFavoriteStore, removeFavoriteStore } from '../lib/favorites';
-import { getLocalFavorites, isLoggedIn as getIsLoggedIn } from '../lib/session';
-import { getOwnerComment, getStoreLiveStatus } from '../lib/storeRuntime';
+import { isFavoritePlace, isLoggedIn as getIsLoggedIn } from '../lib/session';
+import { getStoreOperatingInfoByCandidates } from '../lib/storeRuntime';
+import { useStoreLookupByExternalPlaceId } from '../hooks/useStoreLookupByExternalPlaceId';
+import { mapStoreToPlace } from '../lib/mappers';
 import styles from './StoreDetail.module.css';
 
 export default function StoreDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [viewMode, setViewMode] = useState('IMAGE'); // 'IMAGE' or 'MAP'
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isFavoriteSubmitting, setIsFavoriteSubmitting] = useState(false);
   const isLoggedIn = getIsLoggedIn();
-  const initialStore = mockStores.find(s => String(s.id) === id) || mockStores[0]; 
-  const ownerComment = getOwnerComment(initialStore.id);
-  const [isFavorite, setIsFavorite] = useState(() => getLocalFavorites().stores.map(String).includes(String(initialStore.id)));
+  const previewStore = location.state?.placePreview || null;
+  const { storeMatch, isLoading: isLookupLoading } = useStoreLookupByExternalPlaceId(id);
+  
+  // 통합 매퍼 사용
+  const baseStore = storeMatch ? mapStoreToPlace(storeMatch) : previewStore;
+  const runtimeStoreId = baseStore?.internalStoreId ?? baseStore?.id ?? id;
+  const operatingInfo = getStoreOperatingInfoByCandidates([runtimeStoreId, id]);
+  
+  // 운영 정보 병합 (수동 병합 - 통합 매퍼에 포함되지 않은 런타임 로직)
+  const mergedStore = baseStore ? {
+    ...baseStore,
+    businessHours: operatingInfo ? `${operatingInfo.openTime} - ${operatingInfo.closeTime}` : baseStore.businessHours,
+    hasBreakTime: operatingInfo ? true : baseStore.hasBreakTime,
+    breakTime: operatingInfo ? `${operatingInfo.breakStart} - ${operatingInfo.breakEnd}` : baseStore.breakTime,
+  } : null;
+
+  const ownerComment = mergedStore?.ownerNotice || '';
+  const ownerImages = mergedStore?.ownerImages || [];
+  const [isFavorite, setIsFavorite] = useState(() => mergedStore ? isFavoritePlace('STORE', mergedStore) : false);
 
   // Sheet drag state (Home.jsx와 동일한 100% 레이아웃 형태 복귀)
   const [sheetHeight, setSheetHeight] = useState(55); // 기본 55%
@@ -77,23 +95,19 @@ export default function StoreDetail() {
     };
   }, [isDragging]);
   
-  // mock data lookup
-  const liveStatus = getStoreLiveStatus(initialStore.id, initialStore.status);
-  const store = { ...initialStore, status: liveStatus }; 
-
-  useEffect(() => {
-    // 이제 window 스크롤이 아니라 내부 scrollArea div 스크롤을 감지합니다.
-  }, []);
+  const store = mergedStore ? { ...mergedStore, status: mergedStore.status } : null; 
 
   useEffect(() => {
     const syncFavoriteState = () => {
-      setIsFavorite(getLocalFavorites().stores.map(String).includes(String(initialStore.id)));
+      if (mergedStore) {
+        setIsFavorite(isFavoritePlace('STORE', mergedStore));
+      }
     };
 
     syncFavoriteState();
     window.addEventListener('favoritesChanged', syncFavoriteState);
     return () => window.removeEventListener('favoritesChanged', syncFavoriteState);
-  }, [initialStore.id]);
+  }, [mergedStore?.id]);
 
   const handleScroll = (e) => {
     if (e.target.scrollTop > 50) {
@@ -112,6 +126,7 @@ export default function StoreDetail() {
   };
 
   const handleShare = () => {
+    if (!store) return;
     const shareData = {
       title: store.name,
       text: `[Toggle] ${store.name} (${store.category}) 현재 상태를 확인해 보세요!`,
@@ -132,7 +147,7 @@ export default function StoreDetail() {
       return;
     }
 
-    if (isFavoriteSubmitting) {
+    if (isFavoriteSubmitting || !store) {
       return;
     }
 
@@ -153,10 +168,13 @@ export default function StoreDetail() {
     }
   };
 
-  if (!store) return <div>Store not found</div>;
+  if (isLookupLoading) return <div>상태를 불러오는 중입니다...</div>;
+  if (!store || !store.name) return <div>장소 정보를 찾을 수 없습니다.</div>;
 
   // 임시 커버 이미지
-  const coverImages = store.images && store.images.length > 0
+  const coverImages = ownerImages.length > 0
+    ? ownerImages
+    : store.images && store.images.length > 0
     ? store.images
     : ["https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=800&q=80"];
 
@@ -237,6 +255,18 @@ export default function StoreDetail() {
                 <MapPin size={18} className={styles.icon} />
                 <span>{store.address}</span>
               </div>
+              {store.roadAddress && store.roadAddress !== store.address && (
+                <div className={styles.infoItem}>
+                  <MapPin size={18} className={styles.icon} />
+                  <span>도로명: {store.roadAddress}</span>
+                </div>
+              )}
+              {store.jibunAddress && (
+                <div className={styles.infoItem}>
+                  <MapPin size={18} className={styles.icon} />
+                  <span>지번: {store.jibunAddress}</span>
+                </div>
+              )}
               <div className={styles.infoItem}>
                 <Phone size={18} className={styles.icon} />
                 <span>{store.contact}</span>
@@ -250,6 +280,15 @@ export default function StoreDetail() {
                       휴게시간: {store.breakTime}
                     </div>
                   )}
+                </div>
+              </div>
+              <div className={styles.infoItem}>
+                <AlertCircle size={18} className={styles.icon} />
+                <div>
+                  <div>데이터 출처: {store.source || 'KAKAO'}</div>
+                  <div style={{ color: '#94a3b8', marginTop: '0.2rem' }}>
+                    {store.verifiedAt ? `검증 시각: ${store.verifiedAt}` : '카카오 검색 결과 기반'}
+                  </div>
                 </div>
               </div>
             </div>

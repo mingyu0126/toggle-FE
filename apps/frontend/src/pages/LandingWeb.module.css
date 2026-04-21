@@ -373,3 +373,35 @@
   color: #64748b;
   font-size: 0.9rem;
 }
+
+/* ========================================================
+   Responsive Media Queries
+   ======================================================== */
+
+@media (max-width: 1024px) {
+  .hero { padding: 0 4rem; }
+  .features { padding: 4rem 4rem; }
+  .footer { padding: 4rem 4rem; }
+  .title { font-size: 4rem; }
+}
+
+@media (max-width: 768px) {
+  .navbar { padding: 0 1rem; height: 60px; }
+  .navLinks { display: none; }
+  .hero { padding: 0 1.5rem; justify-content: center; text-align: center; min-height: 80vh; }
+  .heroContent { display: flex; flex-direction: column; align-items: center; }
+  .title { font-size: 3rem; }
+  .subtitle { font-size: 1.1rem; }
+  .ctaGroup { justify-content: center; }
+  .featureGrid { grid-template-columns: 1fr; gap: 2rem; }
+  .features { padding: 3rem 1.5rem; }
+  .sectionHeader h2 { font-size: 2.2rem; }
+  .footer { padding: 2rem 1.5rem; }
+  .footerContent { flex-direction: column; gap: 1.5rem; text-align: center; }
+}
+
+@media (max-width: 480px) {
+  .title { font-size: 2.5rem; }
+  .ctaGroup { flex-direction: column; width: 100%; }
+  .primaryCta, .secondaryCta { width: 100%; justify-content: center; box-sizing: border-box; }
+}

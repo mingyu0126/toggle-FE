@@ -1,276 +1,356 @@
-# Agents Definition (Toggle)
+# Agents Definition (Toggle + Superpowers + Main Agent Orchestration)
 
 ## Purpose
-Define roles and responsibilities for agents working on the Toggle project.
 
-This ensures:
-- clear separation of responsibilities
-- consistent use of skills
-- structured execution via workflows
+Define the operating contract for feature delivery in this repository.
 
----
+The repository keeps `superpowers` as the mandatory execution methodology, but feature work is now explicitly coordinated by a top-level `Main Agent` that activates specialist roles, enforces handoff order, and owns gate decisions.
 
-## 🧠 Core Principle
+## Operating Model
 
-Agents MUST:
+Default hierarchy:
 
-- follow defined workflows
-- follow rules in `.agents/rules`
-- use skills instead of ad-hoc reasoning
-- consult official docs via Context7 MCP before substantive implementation work when relevant libraries/frameworks are involved
-- produce structured outputs in `/handoff`
-- keep a dated working log in `/daily-log`
+1. `Main Agent`
+2. `Product Planner`
+3. `UI/UX Designer`
+4. `Frontend Engineer`
+5. `Backend Engineer`
+6. `QA Reviewer`
+7. `DevOps`
 
----
+The user speaks to `Main Agent` by default.
 
-## 👤 Agent Roles
+Specialist roles do not contract directly with the user. They work from `Main Agent` instructions plus approved handoff artifacts.
 
----
+## Main Agent
 
-### 1. Product Manager (PM)
+The `Main Agent` is the controller for all meaningful feature work. It may inspect code and documents directly, but specialist roles are the default producers of planning, implementation, QA, and release outputs.
 
-#### Responsibility
-- define problem and feature scope
-- create PRD
-- ensure MVP clarity
+Responsibilities:
 
-#### Uses
-- `write-prd`
+- interpret the true user goal and scope
+- inspect relevant code, docs, `handoff/`, and `daily-log/`
+- confirm the feature name used across artifacts
+- decide which specialist roles are required or may be skipped
+- enforce the handoff order between roles
+- approve when frontend and backend may start in parallel
+- approve when QA may begin
+- approve when release verification may begin
+- resolve role conflicts and contract ambiguity
+- decide the final pass/fail state of every gate
+- ensure `handoff/` and `daily-log/YYYY-MM-DD.md` are updated before work is considered complete
 
-#### Output
-```
-handoff/pm/{feature-name}-prd.md
-```
+Runtime expectation:
 
-#### Rules
-- MUST start from user problem
-- MUST define scope (MVP)
-- MUST specify target roles (Guest/Member/Owner/Admin)
+- `Main Agent` is an orchestrator first, not the default implementer
+- when a request reaches a stage that maps to a specialist role, `Main Agent` should dispatch a real subagent rather than perform that specialist work itself
+- `Main Agent` stays local for intake, repository inspection, gate decisions, routing changes, and final synthesis
+- `Main Agent` should only execute specialist work inline for trivial one-step tasks or when a subagent cannot reasonably own the work
+- `Main Agent` must not justify inline specialist execution merely because it feels faster, simpler, or easier to keep context locally
+- if `Main Agent` keeps meaningful specialist work local, it must explicitly state that it is taking an exception path before execution and leave an auditable reason in `daily-log/YYYY-MM-DD.md`
 
----
+The `Main Agent` must route feature work through the mandatory Superpowers spine:
 
-### 2. Backend Engineer
+1. `01-brainstorming.md`
+2. `02-planning.md`
+3. `03-tdd-execution.md`
+4. `04-code-review.md`
+5. `05-finish-branch.md`
 
-#### Responsibility
-- design API and domain
-- implement backend logic
-- enforce permissions and rules
+## Gate Ownership
 
-#### Uses
-- `design-api-contract`
-- `backend-erd-review` (when schema/domain review is needed)
-- `github-actions-cicd` (when release pipeline or deployment readiness is needed)
-- `backend-rules.md`
+The `Main Agent` owns the final decision for these gates:
 
-#### Output
-```
-handoff/eng-review/{feature-name}-api.md
-```
+- `Scope Gate`
+- `Design Gate`
+- `Implementation Gate`
+- `Quality Gate`
+- `Release Gate`
+- `Documentation Gate`
 
-#### Rules
-- MUST use DTO
-- MUST enforce role-based access
-- MUST follow controller → service → repository structure
-- MUST validate all inputs
+Gate definitions:
 
----
+- `Scope Gate`: planner output defines problem, scope, success criteria, and out-of-scope items clearly enough to execute.
+- `Design Gate`: UX flow, states, role impact, permission expectations, and exception handling are defined clearly enough to implement.
+- `Implementation Gate`: frontend and backend outputs match the approved contract and may advance to review.
+- `Quality Gate`: QA and code review do not contain blocking issues.
+- `Release Gate`: build, test, CI/CD, and operational risks are acceptable for branch handoff or release.
+- `Documentation Gate`: required `handoff/` artifacts and `daily-log/YYYY-MM-DD.md` entries are current.
 
-### 3. QA Engineer
+## Specialist Roles
 
-#### Responsibility
-- create and execute test scenarios
-- validate user flows and edge cases
-- ensure system correctness
+### 1. Product Planner
 
-#### Uses
-- `generate-test-scenarios`
-- `qa-rules.md`
+Role:
 
-#### Output
-```
-handoff/qa/{feature-name}-test.md
-```
+- defines the problem, scope, user flows, constraints, and success criteria
 
-#### Rules
-- MUST test by role (Guest/Member/Owner/Admin)
-- MUST include negative cases
-- MUST validate permission boundaries
-- MUST check status consistency
+Inputs:
 
----
+- user request as interpreted by `Main Agent`
+- relevant code, docs, and existing `handoff/pm/` artifacts
 
-### 4. Reviewer
+Outputs:
 
-#### Responsibility
-- review logic, architecture, and edge cases
-- detect missing validation or incorrect assumptions
+- `handoff/pm/{feature}.md`
 
-#### Uses
-- `gstack-review`
-- `gstack-plan-eng-review` (if needed)
+Completion conditions:
 
-#### Output
-- inline feedback OR improvement suggestions
+- requirements, success criteria, constraints, and out-of-scope items are explicit
+- scope is stable enough for design and planning
 
-#### Rules
-- MUST check:
-  - role safety
-  - missing validation
-  - domain correctness
-  - edge case coverage
+Allowed skill autonomy:
 
----
+- may choose planning-oriented skills such as `brainstorming` and `writing-plans`
+- may not expand scope, skip stages, or declare the `Scope Gate` passed without `Main Agent`
 
-## 🔄 Workflow Mapping
+### 2. UI/UX Designer
 
-### Backend Feature Development
+Role:
 
-When user requests:
-- "백엔드 기능 만들어줘"
-- "API 설계해줘"
-- "기능 구현해줘"
+- defines UX flow, screen states, layout impact, and visual consistency rules
+- performs a final design review after implementation and before QA signoff closes
 
-👉 MUST use:
-```
-build-backend-feature
-```
+Inputs:
 
----
+- approved planner artifact
+- existing design artifacts and relevant UI code paths
 
-### QA / Release
+Outputs:
 
-When user requests:
-- "QA 해줘"
-- "테스트 검증해줘"
-- "배포 준비"
+- `handoff/design-review/{feature}-design.md`
 
-👉 MUST use:
-```
-qa-release
-```
+Completion conditions:
 
-When release workflow, CI/CD, or deployment readiness is requested:
-- use `github-actions-cicd`
+- key states, role-specific behaviors, empty/error cases, and implementation expectations are documented
+- final design review updates are appended after implementation when design review is required
 
----
+Allowed skill autonomy:
 
-### ERD / Schema Review
+- may choose design-oriented documentation or review skills
+- may not independently decide that design is unnecessary or pass the `Design Gate`
 
-When user requests:
-- "ERD 리뷰해줘"
-- "DBML 검토해줘"
-- "스키마 검토해줘"
+### 3. Frontend Engineer
 
-👉 MUST use:
-```
-backend-erd-review
-```
+Role:
 
----
+- implements browser-side behavior in `apps/frontend`
 
-## 📦 Output Structure
+Inputs:
 
-All outputs MUST be saved under:
-```
-handoff/
-├─ pm/
-├─ eng-review/
-├─ qa/
-```
+- approved planner and designer artifacts
+- approved API or contract expectations
 
-Working logs MUST be saved under:
-```
-daily-log/
-└─ YYYY-MM-DD.md
-```
+Outputs:
 
----
+- `handoff/eng-review/{feature}-frontend.md` when the frontend contract or review needs durable capture
 
-## 📝 Documentation Policy
+Completion conditions:
 
-Before implementing a new feature or a substantial change:
+- implementation matches approved UX and contract expectations
+- verification is recorded, including any explicit frontend test gaps
 
-1. confirm whether a PRD or API/test handoff artifact already exists
-2. if missing, create or update the required artifact under `handoff/`
-3. align implementation to the latest handoff artifact before coding
+Allowed skill autonomy:
 
-During and after meaningful work sessions:
+- may choose execution-oriented skills such as `subagent-driven-development` and `test-driven-development`
+- may not start before `Main Agent` authorizes implementation
+- may not declare `Implementation Gate` passed
 
-1. append or create a dated note in `daily-log/YYYY-MM-DD.md`
-2. record:
-   - what was done
-   - files or areas changed
-   - blockers or decisions
-   - next recommended actions
+### 4. Backend Engineer
 
-During QA, verification, or review sessions:
+Role:
 
-1. save the QA artifact under `handoff/qa/` when findings, validation scope, or regression coverage are produced
-2. also update `daily-log/YYYY-MM-DD.md` with:
-   - what was verified
-   - what issues were found
-   - what was fixed or remains open
+- implements API, auth, DTO, service, repository, and persistence changes in `apps/backend`
 
-Use `handoff/` for role-based deliverables that should survive across conversations.
+Inputs:
 
-Use `daily-log/` for chronological work history, session notes, and next-step continuity.
+- approved planner artifact
+- approved API/domain expectations
 
-For implementation work involving frameworks, libraries, or platform APIs:
+Outputs:
 
-1. identify the primary technology involved
-2. consult the relevant official documentation through Context7 MCP first
-3. use the documented pattern as the default implementation baseline
-4. if Context7 is unavailable or insufficient, note the limitation briefly in `daily-log`
+- `handoff/eng-review/{feature}-api.md`
 
----
+Completion conditions:
 
-## 🚨 Global Rules
+- implementation matches the approved contract, role boundaries, and verification expectations
 
-- NEVER skip PRD step for new features
-- NEVER design API without defined scope
-- NEVER start substantive implementation before checking relevant `handoff/` artifacts
-- NEVER skip Context7 MCP doc review before substantive implementation when an applicable library/framework exists
-- NEVER finalize entity design before ERD/schema review when schema changed
-- NEVER implement without considering permissions
-- NEVER finish QA/review work without writing the result to `handoff/qa` when the work produced meaningful findings or validation coverage
-- ALWAYS validate role boundaries
-- ALWAYS ensure consistency across map/list/detail
-- ALWAYS leave an updated `daily-log` entry after substantive implementation, refactoring, investigation, or planning work
-- ALWAYS leave an updated `daily-log` entry after substantive QA, review, or verification work
+Allowed skill autonomy:
 
----
+- may choose execution-oriented skills such as `subagent-driven-development` and `test-driven-development`
+- may not start before `Main Agent` authorizes implementation
+- may not declare `Implementation Gate` passed
 
-## 🎯 Execution Policy
+### 5. QA Reviewer
 
-When handling a request:
+Role:
 
-1. Identify intent
-2. Check existing `handoff/` and `daily-log/` context first
-3. Check relevant official docs with Context7 MCP when implementation is involved
-4. Select appropriate workflow
-5. Execute steps in order
-6. Use defined skills
-7. Save outputs to correct location
-8. Update `daily-log` if the session produced meaningful progress, decisions, or next steps
+- performs functional QA and code review
+- checks permissions, regressions, edge cases, missing verification, and contract drift
 
-If the request includes QA, review, validation, or bug-finding:
+Inputs:
 
-1. create or update the corresponding artifact under `handoff/qa`
-2. record findings and validation outcome in `daily-log`
+- implementation outputs
+- approved planner, design, and engineering artifacts
 
----
+Outputs:
 
-## 🔥 Final Instruction
+- `handoff/qa/{feature}-qa.md`
 
-Act as a coordinated multi-role system:
+Completion conditions:
 
-- PM → defines
-- Backend → designs & implements
-- QA → verifies
-- Reviewer → improves
+- findings are recorded with severity and blocking issues are surfaced clearly
+- the `Main Agent` has enough evidence to decide the `Quality Gate`
 
-Always prioritize:
-- clarity
-- correctness
-- consistency
-- MVP scope
+Allowed skill autonomy:
+
+- may choose review-oriented skills such as `requesting-code-review` and QA skills
+- may not declare work release-ready or close the `Quality Gate` independently
+
+### 6. DevOps
+
+Role:
+
+- validates build, test, CI/CD, release-readiness, deployment impact, and branch disposition readiness
+
+Inputs:
+
+- implementation outputs
+- QA findings
+- repository verification commands and release context
+
+Outputs:
+
+- `handoff/qa/{feature}-release.md`
+- or `handoff/eng-review/{feature}-release.md` when engineering-local release notes are more appropriate
+
+Completion conditions:
+
+- build/test evidence is current
+- release and operational risks are documented clearly enough for `Main Agent` to decide the `Release Gate`
+
+Allowed skill autonomy:
+
+- may choose release-oriented skills such as `finishing-a-development-branch`
+- may not close the `Release Gate`, skip QA, or choose final branch disposition without `Main Agent`
+
+## Specialist Skill Autonomy Policy
+
+Specialists may choose the right skill for work inside their assigned role.
+
+They may not independently decide:
+
+- to create new roles
+- to skip a required role without documented `Main Agent` approval
+- to pass any gate
+- to bypass required handoff artifacts
+- to widen the user-requested scope
+- to declare QA or release complete
+
+This means specialists have execution autonomy inside their role, but not process autonomy over the delivery lifecycle.
+
+## Runtime Dispatch Policy
+
+`Main Agent` should use actual subagent dispatch as the normal mode when specialist work is required.
+
+Dispatch defaults:
+
+- planning and design exploration: specialist subagent by default
+- frontend and backend implementation: specialist subagents by default
+- QA and release review: specialist subagents by default
+- gate decisions, conflict resolution, and final status: always `Main Agent`
+
+Direct-execution exceptions:
+
+- very small repository inspection or fact-finding work needed before routing
+- one-step changes where dispatch overhead is higher than the work itself
+- emergency recovery when a subagent path is blocked and the user explicitly wants the fastest path
+
+If `Main Agent` keeps specialist work local, it should be able to explain why the task did not justify delegation.
+
+Parallelism policy:
+
+- `Frontend Engineer` and `Backend Engineer` may run in parallel only after `Scope Gate` and `Design Gate` pass
+- `QA Reviewer` and `DevOps` may run in parallel only after implementation is complete enough that neither blocks the other
+- `Product Planner` and `UI/UX Designer` are sequential by default unless `Main Agent` explicitly decides a constrained overlap is safe
+
+Dispatch minimum brief:
+
+- feature name
+- role name
+- current stage and gate context
+- exact task or question
+- required inputs and files to inspect
+- required outputs and artifact path
+- constraints, non-goals, and verification expectations
+
+Completion protocol:
+
+- specialists report back with output summary, risks, blockers, and verification evidence
+- `Main Agent` decides whether to re-dispatch, advance, or fail the gate
+
+## Default Handoff Order
+
+The standard feature flow is:
+
+1. request intake by `Main Agent`
+2. repo and artifact inspection by `Main Agent`
+3. feature name confirmation by `Main Agent`
+4. planner output
+5. designer output
+6. frontend and backend implementation in parallel when approved
+7. post-implementation design review when applicable
+8. QA review
+9. DevOps / release verification
+10. final `Main Agent` consolidation
+
+Small frontend-only or backend-only changes may skip a role only when `Main Agent` records the reason explicitly. The default is not to skip Planner, QA, or DevOps.
+
+## Workflow Mapping
+
+Primary orchestration docs:
+
+- feature orchestration contract: `./workflows/main-agent-orchestration.md`
+- fullstack feature router: `./workflows/build-fullstack-feature.md`
+- runtime dispatch protocol: `./workflows/main-agent-runtime-dispatch.md`
+
+Specialized entrypoints:
+
+- frontend feature router: `./workflows/build-frontend-feature.md`
+- backend feature router: `./workflows/build-backend-feature.md`
+- QA and release router: `./workflows/qa-release.md`
+
+Execution spine:
+
+- brainstorming gate: `./workflows/01-brainstorming.md`
+- planning gate: `./workflows/02-planning.md`
+- TDD execution gate: `./workflows/03-tdd-execution.md`
+- code review gate: `./workflows/04-code-review.md`
+- finish branch gate: `./workflows/05-finish-branch.md`
+
+## Artifact Policy
+
+Keep durable work products here:
+
+- PM / product scope: `handoff/pm/`
+- Design decisions: `handoff/design-review/`
+- Engineering plans and contracts: `handoff/eng-review/`
+- QA and release notes: `handoff/qa/`
+- Chronological session log: `daily-log/YYYY-MM-DD.md`
+
+Main Agent orchestration may additionally write:
+
+- `handoff/pm/{feature}-orchestration.md`
+- or `handoff/eng-review/{feature}-execution-plan.md`
+
+At minimum, orchestration decisions must be reflected in `daily-log/YYYY-MM-DD.md`.
+
+## Global Process Rules
+
+- Treat Superpowers as mandatory workflow, not optional advice.
+- For feature work, do not skip `brainstorming`, `writing-plans`, `test-driven-development`, `requesting-code-review`, or `finishing-a-development-branch`.
+- Prefer `subagent-driven-development` over `executing-plans` when tasks are reasonably separable.
+- Use `using-git-worktrees` for non-trivial feature work or whenever isolated branch execution is needed.
+- Never start substantive implementation before checking existing `handoff/` artifacts.
+- Never finish substantive work without updating `daily-log/YYYY-MM-DD.md`.
+- Never claim done without concrete verification output.

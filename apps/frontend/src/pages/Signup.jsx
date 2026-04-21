@@ -12,6 +12,7 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [nickname, setNickname] = useState('');
+  const [ownerDisplayName, setOwnerDisplayName] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -30,7 +31,8 @@ export default function Signup() {
       await signup({
         email,
         password,
-        nickname,
+        nickname: loginType === 'USER' ? nickname : null,
+        ownerDisplayName: loginType === 'OWNER' ? ownerDisplayName : null,
         role: loginType,
       });
 
@@ -82,8 +84,14 @@ export default function Signup() {
               type="text"
               placeholder={loginType === 'USER' ? '닉네임' : '매장명 또는 대표자명'}
               className={styles.input}
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
+              value={loginType === 'USER' ? nickname : ownerDisplayName}
+              onChange={(e) => {
+                if (loginType === 'USER') {
+                  setNickname(e.target.value);
+                  return;
+                }
+                setOwnerDisplayName(e.target.value);
+              }}
               required
             />
             <Smile className={styles.inputIcon} size={20} />

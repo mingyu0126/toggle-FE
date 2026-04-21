@@ -51,6 +51,15 @@ public class Store extends BaseTimeEntity {
     @Column
     private String phone;
 
+    @Column
+    private String roadAddress;
+
+    @Column
+    private String jibunAddress;
+
+    @Column
+    private String categoryName;
+
     @Column(nullable = false)
     private String address;
 
@@ -75,6 +84,32 @@ public class Store extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     private LiveStatusSource liveStatusSource;
+
+    private LocalDateTime verifiedAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String rawSourcePayloadJson;
+
+    @Column(length = 500)
+    private String ownerNotice;
+
+    @Column(length = 5)
+    private String operatingOpenTime;
+
+    @Column(length = 5)
+    private String operatingCloseTime;
+
+    @Column(length = 5)
+    private String breakStartTime;
+
+    @Column(length = 5)
+    private String breakEndTime;
+
+    @Column(columnDefinition = "TEXT")
+    private String ownerImageUrlsJson;
+
+    @Column(precision = 2, scale = 1)
+    private BigDecimal rating;
 
     @Column(nullable = false)
     private boolean isVerified;
@@ -130,6 +165,18 @@ public class Store extends BaseTimeEntity {
         return phone;
     }
 
+    public String getRoadAddress() {
+        return roadAddress;
+    }
+
+    public String getJibunAddress() {
+        return jibunAddress;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
     public String getAddressNormalized() {
         return addressNormalized;
     }
@@ -150,6 +197,46 @@ public class Store extends BaseTimeEntity {
         return liveBusinessStatus;
     }
 
+    public LocalDateTime getVerifiedAt() {
+        return verifiedAt;
+    }
+
+    public LiveStatusSource getLiveStatusSource() {
+        return liveStatusSource;
+    }
+
+    public boolean isVerified() {
+        return isVerified;
+    }
+
+    public BigDecimal getRating() {
+        return rating;
+    }
+
+    public String getOwnerNotice() {
+        return ownerNotice;
+    }
+
+    public String getOperatingOpenTime() {
+        return operatingOpenTime;
+    }
+
+    public String getOperatingCloseTime() {
+        return operatingCloseTime;
+    }
+
+    public String getBreakStartTime() {
+        return breakStartTime;
+    }
+
+    public String getBreakEndTime() {
+        return breakEndTime;
+    }
+
+    public String getOwnerImageUrlsJson() {
+        return ownerImageUrlsJson;
+    }
+
     public void syncResolvedPlace(
         String name,
         String phone,
@@ -166,9 +253,42 @@ public class Store extends BaseTimeEntity {
         this.longitude = longitude;
     }
 
+    public void markVerified(
+        String roadAddress,
+        String jibunAddress,
+        String categoryName,
+        String rawSourcePayloadJson,
+        LocalDateTime verifiedAt
+    ) {
+        this.roadAddress = roadAddress;
+        this.jibunAddress = jibunAddress;
+        this.categoryName = categoryName;
+        this.rawSourcePayloadJson = rawSourcePayloadJson;
+        this.verifiedAt = verifiedAt;
+        this.isVerified = true;
+    }
+
     public void updateLiveBusinessStatus(BusinessStatus liveBusinessStatus, LiveStatusSource liveStatusSource) {
         this.liveBusinessStatus = liveBusinessStatus;
         this.liveStatusSource = liveStatusSource;
         this.liveStatusUpdatedAt = LocalDateTime.now();
+    }
+
+    public void updateOwnerProfile(
+        String ownerNotice,
+        String operatingOpenTime,
+        String operatingCloseTime,
+        String breakStartTime,
+        String breakEndTime,
+        String ownerImageUrlsJson,
+        BigDecimal rating
+    ) {
+        this.ownerNotice = ownerNotice;
+        this.operatingOpenTime = operatingOpenTime;
+        this.operatingCloseTime = operatingCloseTime;
+        this.breakStartTime = breakStartTime;
+        this.breakEndTime = breakEndTime;
+        this.ownerImageUrlsJson = ownerImageUrlsJson;
+        this.rating = rating;
     }
 }

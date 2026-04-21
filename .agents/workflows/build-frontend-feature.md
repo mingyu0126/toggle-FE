@@ -1,225 +1,40 @@
 ---
-description: End-to-end workflow for implementing frontend features in Toggle while preserving guest-first browsing, mobile/web consistency, and status clarity.
+description: Frontend feature entrypoint under Main Agent orchestration.
 ---
 
-# Build Frontend Feature (Toggle)
+# Build Frontend Feature
 
-## Purpose
-Use this workflow when implementing a new frontend feature for Toggle.
+Use this as a scoped router under `main-agent-orchestration.md`, not a standalone process.
 
-This workflow ensures:
-- product scope is understood before UI work starts
-- mobile and web routes stay consistent
-- guest browsing is not accidentally blocked
-- status-driven UX remains clear
-- frontend changes stay aligned with backend/domain rules
+Required order:
 
----
+1. `main-agent-orchestration.md`
+2. `01-brainstorming.md`
+3. `02-planning.md`
+4. `03-tdd-execution.md`
+5. `04-code-review.md`
+6. `qa-release.md`
+7. `05-finish-branch.md`
 
-## Input
+Role expectations:
 
-- rough feature idea OR requirement
-- existing product context in `/docs`
-- existing frontend implementation in `apps/frontend`
-- optional: related PRD, API contract, ERD, mocks
+- `Main Agent` still decides whether Planner, Designer, QA Reviewer, and DevOps are required
+- the default is not to skip Planner, QA Reviewer, or DevOps
+- if design work is minimal, `Main Agent` must still record whether Designer was engaged or explicitly bypassed
 
----
+Required artifact flow:
 
-## 🚨 MANDATORY RULES
+- planner output: `handoff/pm/{feature}.md`
+- designer output when required: `handoff/design-review/{feature}-design.md`
+- frontend engineering output when durable capture is useful: `handoff/eng-review/{feature}-frontend.md`
+- QA output: `handoff/qa/{feature}-qa.md`
+- release output when needed: `handoff/qa/{feature}-release.md` or `handoff/eng-review/{feature}-release.md`
+- orchestration decision trail: `daily-log/YYYY-MM-DD.md`
 
-- MUST follow `frontend-rules.md`
-- MUST preserve guest-first browsing
-- MUST validate mobile/web route impact
-- MUST keep status representation consistent with product docs
-- MUST handle loading, empty, error, and login-required states
+Frontend-specific expectations:
 
----
-
-## Execution Steps
-
-### 0. Understand Existing Frontend Context
-
-Check:
-- which routes already exist
-- whether the feature affects mobile, web, or both
-- whether current screens use mocks, shared components, or page-local logic
-- whether status or permission behavior is already inconsistent
-
-Do NOT design in isolation from the existing codebase.
-
----
-
-### 1. Clarify Feature Scope
-
-- identify the user problem
-- define target role:
-  - Guest
-  - Member
-  - Owner
-  - Admin
-- decide whether the feature belongs to:
-  - mobile routes
-  - web routes
-  - both
-- reduce to MVP scope
-
-If scope is unclear, refine before implementation.
-
----
-
-### 2. Load Product And Domain Context
-
-Review as needed:
-- `docs/product/toggle.md`
-- `docs/architecture/toggle_erd.md`
-
-If frontend behavior depends on schema or enum interpretation:
-- verify standardized values first
-
-If the feature changes data shape or schema expectations:
-- coordinate with `backend-erd-review`
-- coordinate with `design-api-contract`
-
----
-
-### 3. Define Frontend Behavior
-
-Decide and document:
-- entry point
-- route impact
-- UI states
-- login boundary
-- map/list/detail consistency rules
-- mobile/web parity rules
-
-At minimum, answer:
-- What can guests do?
-- What requires login?
-- What changes on mobile?
-- What changes on web?
-- What happens on empty/error states?
-
----
-
-### 4. Identify Reuse vs New UI
-
-Before creating new files, check:
-- can an existing common component be reused?
-- can current pages share helper logic?
-- is this actually a page concern instead of a reusable component?
-
-Preferred order:
-1. reuse existing component
-2. extend existing component carefully
-3. create a new component only when responsibility is clearly separate
-
----
-
-### 5. Prepare Data Flow
-
-Determine:
-- mock-driven implementation or real API integration
-- page-local state vs lifted state
-- where enum/status mapping should live
-- how selected place, filter state, and auth prompts are coordinated
-
-Rules:
-- keep raw API/mock data out of deeply presentational components
-- keep domain mapping centralized
-- do not duplicate status label/color logic across pages
-
----
-
-### 6. Implement Frontend
-
-Possible implementation scope:
-- page components
-- shared components
-- CSS Modules
-- route wiring
-- mocks
-- constants
-- lightweight helpers
-
-Must ensure:
-- no guest browsing regression
-- no route mismatch between mobile and web where parity is expected
-- no hidden login requirement for browse flows
-- no status inconsistency between map/list/detail
-
----
-
-### 7. Self Review
-
-Check:
-- route clarity
-- prop clarity
-- duplicate logic
-- auth boundary correctness
-- state predictability
-- styling consistency
-- mobile/web parity
-
-If architecture or plan quality is in doubt:
-- use `gstack-plan-design-review`
-- use `gstack-plan-eng-review` when data flow or integration risk is high
-
----
-
-### 8. QA Validation
-
-Validate at minimum:
-- guest happy path
-- member happy path if relevant
-- login-required action prompt
-- empty state
-- error state
-- mobile route rendering
-- web route rendering if relevant
-- status display consistency
-
-If a runnable frontend is available:
-- use `gstack-browse` and/or `gstack-qa`
-
----
-
-### 9. Final Validation
-
-Ensure:
-- product requirement ↔ frontend behavior consistency
-- backend/domain enum consistency
-- no accidental guest access regression
-- no accidental owner/admin UI exposure
-- no unnecessary divergence between mobile and web flows
-
----
-
-## Output
-
-- frontend implementation plan
-- route impact summary
-- affected components/pages summary
-- QA considerations
-
-Save related artifacts under `handoff/` when the task requires formal handoff.
-
----
-
-## Notes
-
-- Do NOT rewrite the app structure just because a cleaner architecture is imaginable
-- Do NOT force TypeScript or Tailwind into the current codebase unless requested
-- Do NOT let mock-driven UI invent backend contracts silently
-- Always prefer small, shippable frontend changes that preserve existing flows
-
----
-
-## Naming Convention
-
-- feature names must be lowercase kebab-case
-
-Examples:
-- favorite-store
-- public-map-detail
-- owner-status-update
-- shared-map-view
+- implementation happens in `apps/frontend`
+- mobile/web route behavior must stay intentional
+- frontend execution may begin only after `Scope Gate` and `Design Gate` are explicitly passed
+- verification uses `cd apps/frontend && npm run lint` and `cd apps/frontend && npm run build`
+- frontend automated unit tests are not yet configured; any gap must be called out explicitly

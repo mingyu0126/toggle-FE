@@ -1,0 +1,27 @@
+- generic [ref=e92]:
+  - generic [ref=e93]:
+    - heading "Toggle" [level=1] [ref=e94]
+    - paragraph [ref=e95]: 실시간으로 연결되는 우리 동네
+  - generic [ref=e96]:
+    - generic [ref=e98] [cursor=pointer]:
+      - img [ref=e99]
+      - text: 일반 사용자
+    - generic [ref=e102] [cursor=pointer]:
+      - img [ref=e103]
+      - text: 점주 (POS)
+  - generic [ref=e107]:
+    - generic [ref=e108]:
+      - textbox "매장 관리자 이메일" [ref=e129]
+      - img [ref=e110]
+    - generic [ref=e113]:
+      - textbox "비밀번호" [ref=e114]
+      - img [ref=e115]
+    - generic [ref=e119] [cursor=pointer]:
+      - checkbox "로그인 상태 유지" [ref=e120]
+      - generic [ref=e121]: 로그인 상태 유지
+    - generic [ref=e122]:
+      - button "아이디/비밀번호 찾기" [ref=e123] [cursor=pointer]
+      - button "점주 가입 신청" [ref=e130] [cursor=pointer]
+    - button "POS Dashboard 접근" [ref=e131] [cursor=pointer]:
+      - text: POS Dashboard 접근
+      - img [ref=e126]

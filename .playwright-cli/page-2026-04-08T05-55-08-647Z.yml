@@ -1,0 +1,49 @@
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e8]
+      - heading "Toggle Owner Dashboard" [level=1] [ref=e12]
+    - button "로그아웃" [ref=e13] [cursor=pointer]:
+      - img [ref=e14]
+      - text: 로그아웃
+  - main [ref=e17]:
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]: 맛있는 덮밥집 본점
+        - generic [ref=e21]: "Store ID: 1984-2938"
+      - generic [ref=e22]:
+        - generic [ref=e23]: 현업 영업 상태 (LIVE)
+        - generic [ref=e24]: 영업중
+    - generic [ref=e25]:
+      - heading "실시간 상태 관리" [level=2] [ref=e26]:
+        - img [ref=e27]
+        - text: 실시간 상태 관리
+      - generic [ref=e30]:
+        - button "영업중 전환" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+          - text: 영업중 전환
+        - button "브레이크타임" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - text: 브레이크타임
+        - button "영업 종료" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - text: 영업 종료
+        - button "조기 마감" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - text: 조기 마감
+        - button "임시 휴무" [ref=e45] [cursor=pointer]:
+          - img [ref=e46]
+          - text: 임시 휴무
+    - generic [ref=e48]:
+      - heading "📢 사장님 실시간 코멘트" [level=2] [ref=e49]
+      - generic [ref=e50]:
+        - textbox "예) 재료가 조기 소진되었습니다!, 오늘 6시까지 영업합니다." [ref=e51]
+        - button "코멘트 저장/적용" [ref=e52] [cursor=pointer]
+    - generic [ref=e53]:
+      - heading "당일 로그 (History)" [level=2] [ref=e54]:
+        - img [ref=e55]
+        - text: 당일 로그 (History)
+      - generic [ref=e58]:
+        - generic [ref=e59]: 오후 02:55
+        - generic [ref=e60]: 영업중
+        - generic [ref=e61]: 포스기 로그인 (인증 완료)

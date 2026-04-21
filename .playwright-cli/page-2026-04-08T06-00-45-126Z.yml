@@ -1,0 +1,29 @@
+- generic [ref=e4]:
+  - banner [ref=e6]:
+    - generic [ref=e7] [cursor=pointer]: Toggle
+    - button "로그인 / 회원가입" [ref=e9] [cursor=pointer]
+  - main [ref=e10]:
+    - generic [ref=e13]: 실시간 동기화 지도 서비스
+    - heading "지금 방문 가능한 장소를 찾아보세요" [level=1] [ref=e14]:
+      - text: 지금 방문 가능한
+      - text: 장소를 찾아보세요
+    - paragraph [ref=e15]:
+      - text: 포털 지도에서 헛걸음하셨나요?
+      - text: Toggle은 점포의 실제 영업 상태와 공공기관 혼잡도를 실시간으로 반영합니다.
+    - generic [ref=e16]:
+      - button "내 주변 보기" [ref=e17] [cursor=pointer]:
+        - img [ref=e18]
+        - text: 내 주변 보기
+      - button "장소 검색하기" [ref=e20] [cursor=pointer]:
+        - img [ref=e21]
+        - text: 장소 검색하기
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - img [ref=e27]
+        - generic [ref=e31]: 실시간 영업 상태
+      - generic [ref=e32]:
+        - img [ref=e34]
+        - generic [ref=e39]: 공공기관 혼잡도
+      - generic [ref=e40]:
+        - img [ref=e42]
+        - generic [ref=e45]: 나만의 지도 저장

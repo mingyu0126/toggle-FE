@@ -1,0 +1,58 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - img "Restaurant and Cafe" [ref=e7]
+    - generic [ref=e8]:
+      - generic [ref=e9] [cursor=pointer]:
+        - img [ref=e10]
+        - generic [ref=e14]: Toggle PC
+      - heading "실시간으로 연결되는 당신의 동네." [level=1] [ref=e15]:
+        - text: 실시간으로 연결되는
+        - text: 당신의 동네.
+      - paragraph [ref=e16]:
+        - text: 포털 지도보다 더 생생하고 빠른 정보를 만나보세요.
+        - text: 가입 한 번으로 나만의 장소와 길찾기를 모두 연동할 수 있습니다.
+      - generic [ref=e17]:
+        - generic [ref=e22]: +2K
+        - paragraph [ref=e23]: 매달 2천명 이상의 사용자가 새롭게 합류하고 있습니다.
+  - generic [ref=e25]:
+    - button "홈페이지로" [ref=e26] [cursor=pointer]:
+      - img [ref=e27]
+      - text: 홈페이지로
+    - heading "환영합니다 👋" [level=2] [ref=e29]
+    - paragraph [ref=e30]: 계속하려면 로그인해 주세요.
+    - generic [ref=e31]:
+      - generic [ref=e33] [cursor=pointer]:
+        - img [ref=e34]
+        - text: 일반 사용자
+      - generic [ref=e37] [cursor=pointer]:
+        - img [ref=e38]
+        - text: 매장 점주
+    - generic [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e44]: 이메일
+        - generic [ref=e45]:
+          - textbox "가입하신 매장 이메일" [ref=e72]
+          - img [ref=e47]
+      - generic [ref=e50]:
+        - generic [ref=e51]: 비밀번호
+        - generic [ref=e52]:
+          - textbox "비밀번호" [ref=e53]
+          - img [ref=e54]
+      - generic [ref=e57]:
+        - generic [ref=e58] [cursor=pointer]:
+          - checkbox "로그인 상태 유지" [ref=e59]
+          - generic [ref=e60]: 로그인 상태 유지
+        - link "비밀번호를 잊으셨나요?" [ref=e61] [cursor=pointer]:
+          - /url: "#"
+      - button "POS Dashboard 접근" [ref=e73] [cursor=pointer]:
+        - text: POS Dashboard 접근
+        - img [ref=e63]
+    - generic [ref=e65]: 계정이 없으신가요? 회원가입하기
+    - generic [ref=e69]:
+      - text: 로그인함으로써 Toggle의
+      - link "이용약관" [ref=e70] [cursor=pointer]:
+        - /url: "#"
+      - text: 및
+      - link "개인정보 처리방침" [ref=e71] [cursor=pointer]:
+        - /url: "#"
+      - text: 에 동의하게 됩니다.

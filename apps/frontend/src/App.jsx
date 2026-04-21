@@ -11,7 +11,6 @@ import MyMap from './pages/MyMap';
 import SharedMap from './pages/SharedMap';
 import Signup from './pages/Signup'; // 회원가입 페이지 추가
 import Pos from './pages/Pos';
-import Admin from './pages/Admin';
 import PosWeb from './pages/PosWeb'; // 신규 데스크탑 전용 메뉴
 import HomeWeb from './pages/HomeWeb'; // 신규 데스크탑 전용 맵
 import StoreWeb from './pages/StoreWeb'; // 신규 데스크탑 전용 장소 상세
@@ -24,7 +23,8 @@ import PublicWeb from './pages/PublicWeb'; // 신규 데스크탑 공공기관 �
 import SignupWeb from './pages/SignupWeb'; // 신규 데스크탑 회원가입
 import AdminLoginWeb from './pages/AdminLoginWeb'; // 신규 데스크탑 관리자 로그인
 import AdminWeb from './pages/AdminWeb'; // 신규 데스크탑 관리자 페이지
-import { getCurrentUserRole, isLoggedIn, restoreAuthSession } from './lib/session';
+import { restoreAuthSession } from './lib/session';
+import { useAuthSession } from './hooks/useAuthSession';
 
 // 모바일 앱 형태를 유지할 페이지들을 감싸는 레이아웃 프레임
 function MobileFrame({ children }) {
@@ -36,11 +36,13 @@ function MobileFrame({ children }) {
 }
 
 function ProtectedRoute({ children, redirectTo, roles }) {
-  if (!isLoggedIn()) {
+  const auth = useAuthSession();
+
+  if (!auth.isLoggedIn) {
     return <Navigate to={redirectTo} replace />;
   }
 
-  if (roles?.length && !roles.includes(getCurrentUserRole())) {
+  if (roles?.length && !roles.includes(auth.role)) {
     return <Navigate to="/" replace />;
   }
 
@@ -85,11 +87,13 @@ function App() {
         <Route path="/publicweb/:id" element={<PublicWeb />} />
         <Route path="/favoritesweb" element={<ProtectedRoute redirectTo="/loginweb"><FavoritesWeb /></ProtectedRoute>} />
         <Route path="/my-mapweb" element={<ProtectedRoute redirectTo="/loginweb"><MyMapWeb /></ProtectedRoute>} />
+        <Route path="/sharedweb" element={<SharedMap />} />
+        <Route path="/sharedweb/:id" element={<SharedMap />} />
         <Route path="/listweb" element={<ListWeb />} />
         <Route path="/signupweb" element={<SignupWeb />} />
         <Route path="/posweb" element={<ProtectedRoute redirectTo="/loginweb" roles={['OWNER']}><PosWeb /></ProtectedRoute>} />
         <Route path="/adminloginweb" element={<AdminLoginWeb />} />
-        <Route path="/adminweb" element={<AdminWeb />} />
+        <Route path="/adminweb" element={<ProtectedRoute redirectTo="/adminloginweb" roles={['ADMIN']}><AdminWeb /></ProtectedRoute>} />
         
         {/* 나머지는 모바일 프레임(최대 너비 480px 제한) 적용 */}
         <Route path="*" element={
@@ -107,7 +111,7 @@ function App() {
               <Route path="/shared" element={<SharedMap />} />
               <Route path="/shared/:id" element={<SharedMap />} />
               <Route path="/pos" element={<ProtectedRoute redirectTo="/login" roles={['OWNER']}><Pos /></ProtectedRoute>} />
-              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin" element={<ProtectedRoute redirectTo="/adminloginweb" roles={['ADMIN']}><Navigate to="/adminweb" replace /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </MobileFrame>

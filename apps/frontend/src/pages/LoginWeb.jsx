@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Store, ChevronRight, Navigation } from 'lucide-react';
 import { login } from '../lib/auth';
@@ -15,6 +15,10 @@ export default function LoginWeb() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    setError('');
+  }, [loginType]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -26,12 +30,16 @@ export default function LoginWeb() {
         password,
       });
 
+      if (data.user?.role === 'ADMIN') {
+        throw new Error('관리자 계정은 관리자 로그인 페이지에서 로그인해 주세요.');
+      }
+
       if (data.user?.role !== loginType) {
         throw new Error(loginType === 'USER' ? '일반 사용자 계정으로 로그인해 주세요.' : '점주 계정으로 로그인해 주세요.');
       }
 
       persistAuthSession(data, { rememberMe });
-      navigate(loginType === 'USER' ? '/mapweb' : '/pos');
+      navigate(loginType === 'USER' ? '/mapweb' : '/posweb');
     } catch (loginError) {
       setError(loginError.message || '로그인에 실패했습니다.');
     } finally {

@@ -121,20 +121,27 @@
   gap: 1.25rem;
 }
 
+.cardBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.cardActionRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .myMapBtn {
-  position: absolute;
-  top: 1rem;
-  right: 3.25rem;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  padding: 0.35rem 0.6rem;
+  padding: 0.55rem 0.85rem;
   background: rgba(59, 130, 246, 0.2);
   border: 1px solid rgba(59, 130, 246, 0.4);
   color: #60a5fa;
   border-radius: var(--radius-md);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
   cursor: pointer;
-  z-index: 10;
 }
 
 .myMapBtn:hover {

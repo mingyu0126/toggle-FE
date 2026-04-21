@@ -1,5 +1,6 @@
 import { apiRequest } from './api';
-import { getAuthHeaders, updateLocalFavoriteStore } from './session';
+import { getAuthHeaders, updateLocalFavoriteStore, updateLocalFavoritePublic } from './session';
+import { lookupPublicInstitutions } from './publicInstitutions';
 
 const STORE_SOURCE = 'KAKAO';
 
@@ -29,7 +30,7 @@ export async function addFavoriteStore(place) {
     headers: getAuthHeaders(),
   });
 
-  updateLocalFavoriteStore(place.id, true);
+  updateLocalFavoriteStore(resolved.storeId, true);
 
   return {
     ...data,
@@ -45,7 +46,7 @@ export async function removeFavoriteStore(place) {
     headers: getAuthHeaders(),
   });
 
-  updateLocalFavoriteStore(place.id, false);
+  updateLocalFavoriteStore(resolved.storeId, false);
 
   return {
     ...data,
@@ -61,4 +62,50 @@ export async function fetchFavoriteStores() {
   });
 
   return data.content || [];
+}
+
+export async function addFavoritePublic(place) {
+  // Resolve first to ensure it exists in DB
+  const resolvedList = await lookupPublicInstitutions(STORE_SOURCE, [place.id]);
+  const resolved = resolvedList[0];
+  
+  if (!resolved) {
+    throw new Error('공공기관 정보를 찾을 수 없습니다.');
+  }
+
+  const data = await apiRequest(`/api/v1/favorites/stores/publics/${resolved.id}`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  updateLocalFavoritePublic(resolved.id, true);
+
+  return {
+    ...data,
+    externalPlaceId: String(place.id),
+    publicInstitutionId: resolved.id,
+  };
+}
+
+export async function removeFavoritePublic(place) {
+  // Resolve first to get internal ID
+  const resolvedList = await lookupPublicInstitutions(STORE_SOURCE, [place.id]);
+  const resolved = resolvedList[0];
+
+  if (!resolved) {
+    throw new Error('즐겨찾기 정보를 찾을 수 없습니다.');
+  }
+
+  const data = await apiRequest(`/api/v1/favorites/stores/publics/${resolved.id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  updateLocalFavoritePublic(resolved.id, false);
+
+  return {
+    ...data,
+    externalPlaceId: String(place.id),
+    publicInstitutionId: resolved.id,
+  };
 }

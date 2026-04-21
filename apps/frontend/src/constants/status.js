@@ -5,6 +5,8 @@ export const STATUS_TYPES = {
     CLOSED: 'CLOSED',
     TEMP_CLOSED: 'TEMP_CLOSED',
     EARLY_CLOSED: 'EARLY_CLOSED',
+    LOOKUP_PENDING: 'LOOKUP_PENDING',
+    UNREGISTERED: 'UNREGISTERED',
   },
   CONGESTION: {
     RELAXED: 'RELAXED',
@@ -21,6 +23,8 @@ export const STATUS_UI = {
     [STATUS_TYPES.STORE.CLOSED]: { label: '영업종료', colorVar: 'var(--color-status-gray)' },
     [STATUS_TYPES.STORE.TEMP_CLOSED]: { label: '임시휴무', colorVar: 'var(--color-status-red)' },
     [STATUS_TYPES.STORE.EARLY_CLOSED]: { label: '조기마감', colorVar: 'var(--color-status-orange)' },
+    [STATUS_TYPES.STORE.LOOKUP_PENDING]: { label: '상태 확인 중', colorVar: 'var(--color-status-yellow)' },
+    [STATUS_TYPES.STORE.UNREGISTERED]: { label: '상태 정보 없음', colorVar: 'var(--color-status-gray)' },
   },
   CONGESTION: {
     [STATUS_TYPES.CONGESTION.RELAXED]: { label: '여유', colorVar: 'var(--color-status-green)' },
